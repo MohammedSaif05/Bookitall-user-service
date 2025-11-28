@@ -19,14 +19,14 @@ exports.VerifyOtpDto = VerifyOtpDto;
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.Matches)(/^\d{10}$/, {
-        message: 'mobileNo must be a 10 digit number',
+        message: "mobileNo must be a 10 digit number",
     }),
     __metadata("design:type", String)
 ], VerifyOtpDto.prototype, "mobileNo", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.Matches)(/^\d{6}$/, {
-        message: 'otp must be a 6 digit number',
+        message: "otp must be a 6 digit number",
     }),
     __metadata("design:type", String)
 ], VerifyOtpDto.prototype, "otp", void 0);

@@ -1,9 +1,9 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
-import { AuthController } from "./auth.controller";
-import { AuthService } from "./auth.service";
-import { User, UserSchema } from "./schemas/user.schema";
-import { Vendor, VendorSchema } from "./schemas/vendor.schema";
+import { AuthController } from "./auth.controller.js";
+import { AuthService } from "./auth.service.js";
+import { User, UserSchema } from "./schemas/user.schema.js";
+import { Vendor, VendorSchema } from "./schemas/vendor.schema.js";
 
 @Module({
   imports: [

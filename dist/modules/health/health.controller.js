@@ -14,7 +14,7 @@ const common_1 = require("@nestjs/common");
 let HealthController = class HealthController {
     check() {
         return {
-            status: 'ok',
+            status: "ok",
             timestamp: new Date().toISOString(),
         };
     }
@@ -27,6 +27,6 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], HealthController.prototype, "check", null);
 exports.HealthController = HealthController = __decorate([
-    (0, common_1.Controller)('health')
+    (0, common_1.Controller)("health")
 ], HealthController);
 //# sourceMappingURL=health.controller.js.map

@@ -1,9 +1,13 @@
-import { ClassSerializerInterceptor, ValidationPipe } from "@nestjs/common";
+import {
+  ClassSerializerInterceptor,
+  INestApplication,
+  ValidationPipe,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory, Reflector } from "@nestjs/core";
 import compression from "compression";
 import helmet from "helmet";
-import type { RequestHandler } from "express";
+import type { Express, Request, RequestHandler, Response } from "express";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
@@ -19,6 +23,16 @@ const createCompressionMiddleware = (): RequestHandler => {
   return factory();
 };
 
+const registerRootProbeHandlers = (app: INestApplication) => {
+  const server = app.getHttpAdapter().getInstance() as Express;
+
+  const okResponse = (_req: Request, res: Response) =>
+    res.status(200).json({ status: "ok" });
+
+  server.get("/", okResponse);
+  server.head("/", (_req: Request, res: Response) => res.sendStatus(200));
+};
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const configService = app.get(ConfigService);
@@ -28,6 +42,7 @@ async function bootstrap() {
   app.use(createCompressionMiddleware());
   app.enableCors();
   app.enableShutdownHooks();
+  registerRootProbeHandlers(app);
 
   app.useGlobalPipes(
     new ValidationPipe({

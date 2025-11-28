@@ -5,5 +5,8 @@ declare const _default: () => {
         port: number;
         globalPrefix: string;
     };
+    database: {
+        uri: string;
+    };
 };
 export default _default;

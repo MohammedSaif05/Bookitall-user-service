@@ -31,21 +31,21 @@ let AuthController = class AuthController {
 };
 exports.AuthController = AuthController;
 __decorate([
-    (0, common_1.Post)('send-otp'),
+    (0, common_1.Post)("send-otp"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [send_otp_dto_1.SendOtpDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "sendOtp", null);
 __decorate([
-    (0, common_1.Post)('verify-otp'),
+    (0, common_1.Post)("verify-otp"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [verify_otp_dto_1.VerifyOtpDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "verifyOtp", null);
 exports.AuthController = AuthController = __decorate([
-    (0, common_1.Controller)('auth'),
+    (0, common_1.Controller)("auth"),
     __metadata("design:paramtypes", [auth_service_1.AuthService])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map

@@ -20,7 +20,7 @@ let HttpExceptionFilter = HttpExceptionFilter_1 = class HttpExceptionFilter {
             : common_1.HttpStatus.INTERNAL_SERVER_ERROR;
         const message = exception instanceof common_1.HttpException
             ? exception.message
-            : 'Internal server error';
+            : "Internal server error";
         const errorResponse = {
             success: false,
             statusCode: status,

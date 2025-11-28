@@ -4,6 +4,7 @@ declare class EnvironmentVariables {
     APP_NAME?: string;
     PORT?: number;
     GLOBAL_PREFIX?: string;
+    MONGODB_URI: string;
 }
 export declare const validateEnv: (config: Record<string, unknown>) => EnvironmentVariables;
 export {};

@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
+const mongoose_1 = require("@nestjs/mongoose");
 const configuration_1 = __importDefault(require("./config/configuration"));
 const env_validation_1 = require("./config/env.validation");
 const app_controller_1 = require("./app.controller");
@@ -28,6 +29,12 @@ exports.AppModule = AppModule = __decorate([
                 isGlobal: true,
                 load: [configuration_1.default],
                 validate: env_validation_1.validateEnv,
+            }),
+            mongoose_1.MongooseModule.forRootAsync({
+                inject: [config_1.ConfigService],
+                useFactory: (configService) => ({
+                    uri: configService.getOrThrow("database.uri"),
+                }),
             }),
             health_module_1.HealthModule,
             auth_module_1.AuthModule,

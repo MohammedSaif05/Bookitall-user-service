@@ -12,16 +12,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateEnv = void 0;
 const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
-const NODE_ENV_VALUES = ['development', 'test', 'staging', 'production'];
+const NODE_ENV_VALUES = [
+    "development",
+    "test",
+    "staging",
+    "production",
+];
 class EnvironmentVariables {
     NODE_ENV;
     APP_NAME;
     PORT;
     GLOBAL_PREFIX;
+    MONGODB_URI;
 }
 __decorate([
     (0, class_validator_1.IsEnum)(NODE_ENV_VALUES, {
-        message: `NODE_ENV must be one of: ${NODE_ENV_VALUES.join(', ')}`,
+        message: `NODE_ENV must be one of: ${NODE_ENV_VALUES.join(", ")}`,
     }),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Object)
@@ -41,6 +47,11 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], EnvironmentVariables.prototype, "GLOBAL_PREFIX", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], EnvironmentVariables.prototype, "MONGODB_URI", void 0);
 const validateEnv = (config) => {
     const validatedConfig = (0, class_transformer_1.plainToInstance)(EnvironmentVariables, config, {
         enableImplicitConversion: true,
@@ -52,7 +63,7 @@ const validateEnv = (config) => {
         throw new Error(errors.toString());
     }
     if (!validatedConfig.NODE_ENV) {
-        validatedConfig.NODE_ENV = 'development';
+        validatedConfig.NODE_ENV = "development";
     }
     return validatedConfig;
 };

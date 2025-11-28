@@ -18,7 +18,7 @@ exports.SendOtpDto = SendOtpDto;
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.Matches)(/^\d{10}$/, {
-        message: 'mobileNo must be a 10 digit number',
+        message: "mobileNo must be a 10 digit number",
     }),
     __metadata("design:type", String)
 ], SendOtpDto.prototype, "mobileNo", void 0);
