@@ -18,15 +18,18 @@ const mongoose_1 = require("@nestjs/mongoose");
 const crypto_1 = require("crypto");
 const mongoose_2 = require("mongoose");
 const user_type_constant_js_1 = require("./constants/user-type.constant.js");
+const customer_schema_js_1 = require("./schemas/customer.schema.js");
 const user_schema_js_1 = require("./schemas/user.schema.js");
 const vendor_schema_js_1 = require("./schemas/vendor.schema.js");
 let AuthService = class AuthService {
     userModel;
+    customerModel;
     vendorModel;
     demoOtp = "123456";
     mobilePattern = /^\d{10}$/;
-    constructor(userModel, vendorModel) {
+    constructor(userModel, customerModel, vendorModel) {
         this.userModel = userModel;
+        this.customerModel = customerModel;
         this.vendorModel = vendorModel;
     }
     sendOtp(mobileNo) {
@@ -53,19 +56,19 @@ let AuthService = class AuthService {
                 existingUser.userType = userType;
                 await existingUser.save();
             }
-            await this.upsertVendorRecord(existingUser.userId, mobileNo);
+            await this.syncRoleRecords(existingUser.userId, mobileNo, userType);
             return {
                 message: "otp verified",
                 userId: existingUser.userId,
             };
         }
-        const userId = await this.createUserWithVendor(mobileNo, userType);
+        const userId = await this.createUserWithRoleRecord(mobileNo, userType);
         return {
             message: "otp verified",
             userId,
         };
     }
-    async createUserWithVendor(mobileNo, userType) {
+    async createUserWithRoleRecord(mobileNo, userType) {
         const userId = await this.generateUniqueUserId();
         const user = await this.userModel.create({
             mobileNo,
@@ -73,16 +76,22 @@ let AuthService = class AuthService {
             userType,
         });
         try {
-            await this.upsertVendorRecord(userId, mobileNo);
+            await this.syncRoleRecords(userId, mobileNo, userType);
         }
         catch {
             await this.userModel.deleteOne({ _id: user._id }).exec();
-            throw new common_1.InternalServerErrorException("failed to create vendor record for user");
+            throw new common_1.InternalServerErrorException("failed to create role record for user");
         }
         return user.userId;
     }
-    async upsertVendorRecord(userId, mobileNo) {
-        await this.vendorModel.updateOne({ userId }, { userId, mobileNo }, { upsert: true });
+    async syncRoleRecords(userId, mobileNo, userType) {
+        if (userType === "vendor") {
+            await this.vendorModel.updateOne({ userId }, { userId, mobileNo }, { upsert: true });
+            await this.customerModel.deleteOne({ userId }).exec();
+            return;
+        }
+        await this.customerModel.updateOne({ userId }, { userId, mobileNo }, { upsert: true });
+        await this.vendorModel.deleteOne({ userId }).exec();
     }
     async generateUniqueUserId() {
         while (true) {
@@ -98,8 +107,10 @@ exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(user_schema_js_1.User.name)),
-    __param(1, (0, mongoose_1.InjectModel)(vendor_schema_js_1.Vendor.name)),
+    __param(1, (0, mongoose_1.InjectModel)(customer_schema_js_1.Customer.name)),
+    __param(2, (0, mongoose_1.InjectModel)(vendor_schema_js_1.Vendor.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
+        mongoose_2.Model,
         mongoose_2.Model])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

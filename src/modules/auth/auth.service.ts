@@ -8,6 +8,7 @@ import { randomBytes } from "crypto";
 import { Model } from "mongoose";
 import { USER_TYPES } from "./constants/user-type.constant.js";
 import type { UserType } from "./constants/user-type.constant.js";
+import { Customer, CustomerDocument } from "./schemas/customer.schema.js";
 import { User, UserDocument } from "./schemas/user.schema.js";
 import { Vendor, VendorDocument } from "./schemas/vendor.schema.js";
 
@@ -19,6 +20,8 @@ export class AuthService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
+    @InjectModel(Customer.name)
+    private readonly customerModel: Model<CustomerDocument>,
     @InjectModel(Vendor.name)
     private readonly vendorModel: Model<VendorDocument>,
   ) {}
@@ -53,14 +56,14 @@ export class AuthService {
         existingUser.userType = userType;
         await existingUser.save();
       }
-      await this.upsertVendorRecord(existingUser.userId, mobileNo);
+      await this.syncRoleRecords(existingUser.userId, mobileNo, userType);
       return {
         message: "otp verified",
         userId: existingUser.userId,
       };
     }
 
-    const userId = await this.createUserWithVendor(mobileNo, userType);
+    const userId = await this.createUserWithRoleRecord(mobileNo, userType);
 
     return {
       message: "otp verified",
@@ -68,7 +71,7 @@ export class AuthService {
     };
   }
 
-  private async createUserWithVendor(
+  private async createUserWithRoleRecord(
     mobileNo: string,
     userType: UserType,
   ): Promise<string> {
@@ -81,23 +84,38 @@ export class AuthService {
     });
 
     try {
-      await this.upsertVendorRecord(userId, mobileNo);
+      await this.syncRoleRecords(userId, mobileNo, userType);
     } catch {
       await this.userModel.deleteOne({ _id: user._id }).exec();
       throw new InternalServerErrorException(
-        "failed to create vendor record for user",
+        "failed to create role record for user",
       );
     }
 
     return user.userId;
   }
 
-  private async upsertVendorRecord(userId: string, mobileNo: string) {
-    await this.vendorModel.updateOne(
+  private async syncRoleRecords(
+    userId: string,
+    mobileNo: string,
+    userType: UserType,
+  ) {
+    if (userType === "vendor") {
+      await this.vendorModel.updateOne(
+        { userId },
+        { userId, mobileNo },
+        { upsert: true },
+      );
+      await this.customerModel.deleteOne({ userId }).exec();
+      return;
+    }
+
+    await this.customerModel.updateOne(
       { userId },
       { userId, mobileNo },
       { upsert: true },
     );
+    await this.vendorModel.deleteOne({ userId }).exec();
   }
 
   private async generateUniqueUserId(): Promise<string> {

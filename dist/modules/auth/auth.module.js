@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const auth_controller_js_1 = require("./auth.controller.js");
 const auth_service_js_1 = require("./auth.service.js");
+const customer_schema_js_1 = require("./schemas/customer.schema.js");
 const user_schema_js_1 = require("./schemas/user.schema.js");
 const vendor_schema_js_1 = require("./schemas/vendor.schema.js");
 let AuthModule = class AuthModule {
@@ -21,6 +22,7 @@ exports.AuthModule = AuthModule = __decorate([
         imports: [
             mongoose_1.MongooseModule.forFeature([
                 { name: user_schema_js_1.User.name, schema: user_schema_js_1.UserSchema },
+                { name: customer_schema_js_1.Customer.name, schema: customer_schema_js_1.CustomerSchema },
                 { name: vendor_schema_js_1.Vendor.name, schema: vendor_schema_js_1.VendorSchema },
             ]),
         ],
