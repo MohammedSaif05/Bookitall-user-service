@@ -6,8 +6,10 @@ import {
 import { InjectModel } from "@nestjs/mongoose";
 import { randomBytes } from "crypto";
 import { Model } from "mongoose";
-import { User, UserDocument } from "./schemas/user.schema";
-import { Vendor, VendorDocument } from "./schemas/vendor.schema";
+import { USER_TYPES } from "./constants/user-type.constant.js";
+import type { UserType } from "./constants/user-type.constant.js";
+import { User, UserDocument } from "./schemas/user.schema.js";
+import { Vendor, VendorDocument } from "./schemas/vendor.schema.js";
 
 @Injectable()
 export class AuthService {
@@ -31,21 +33,26 @@ export class AuthService {
     };
   }
 
-  async verifyOtp(mobileNo: string, otp: string) {
+  async verifyOtp(mobileNo: string, otp: string, userType: UserType) {
     if (!this.mobilePattern.test(mobileNo)) {
       throw new BadRequestException("mobileNo must be a 10 digit number");
+    }
+
+    if (!USER_TYPES.includes(userType)) {
+      throw new BadRequestException("userType must be vendor or customer");
     }
 
     if (otp !== this.demoOtp) {
       throw new BadRequestException("invalid otp");
     }
 
-    const existingUser = await this.userModel
-      .findOne({ mobileNo })
-      .lean()
-      .exec();
+    const existingUser = await this.userModel.findOne({ mobileNo }).exec();
 
     if (existingUser) {
+      if (existingUser.userType !== userType) {
+        existingUser.userType = userType;
+        await existingUser.save();
+      }
       await this.upsertVendorRecord(existingUser.userId, mobileNo);
       return {
         message: "otp verified",
@@ -53,7 +60,7 @@ export class AuthService {
       };
     }
 
-    const userId = await this.createUserWithVendor(mobileNo);
+    const userId = await this.createUserWithVendor(mobileNo, userType);
 
     return {
       message: "otp verified",
@@ -61,12 +68,16 @@ export class AuthService {
     };
   }
 
-  private async createUserWithVendor(mobileNo: string): Promise<string> {
+  private async createUserWithVendor(
+    mobileNo: string,
+    userType: UserType,
+  ): Promise<string> {
     const userId = await this.generateUniqueUserId();
 
     const user = await this.userModel.create({
       mobileNo,
       userId,
+      userType,
     });
 
     try {

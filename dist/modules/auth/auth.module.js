@@ -9,10 +9,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthModule = void 0;
 const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
-const auth_controller_1 = require("./auth.controller");
-const auth_service_1 = require("./auth.service");
-const user_schema_1 = require("./schemas/user.schema");
-const vendor_schema_1 = require("./schemas/vendor.schema");
+const auth_controller_js_1 = require("./auth.controller.js");
+const auth_service_js_1 = require("./auth.service.js");
+const user_schema_js_1 = require("./schemas/user.schema.js");
+const vendor_schema_js_1 = require("./schemas/vendor.schema.js");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -20,12 +20,12 @@ exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
             mongoose_1.MongooseModule.forFeature([
-                { name: user_schema_1.User.name, schema: user_schema_1.UserSchema },
-                { name: vendor_schema_1.Vendor.name, schema: vendor_schema_1.VendorSchema },
+                { name: user_schema_js_1.User.name, schema: user_schema_js_1.UserSchema },
+                { name: vendor_schema_js_1.Vendor.name, schema: vendor_schema_js_1.VendorSchema },
             ]),
         ],
-        controllers: [auth_controller_1.AuthController],
-        providers: [auth_service_1.AuthService],
+        controllers: [auth_controller_js_1.AuthController],
+        providers: [auth_service_js_1.AuthService],
     })
 ], AuthModule);
 //# sourceMappingURL=auth.module.js.map

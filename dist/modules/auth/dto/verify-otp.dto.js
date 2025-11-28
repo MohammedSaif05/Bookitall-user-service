@@ -11,9 +11,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VerifyOtpDto = void 0;
 const class_validator_1 = require("class-validator");
+const user_type_constant_js_1 = require("../constants/user-type.constant.js");
 class VerifyOtpDto {
     mobileNo;
     otp;
+    userType;
 }
 exports.VerifyOtpDto = VerifyOtpDto;
 __decorate([
@@ -30,4 +32,10 @@ __decorate([
     }),
     __metadata("design:type", String)
 ], VerifyOtpDto.prototype, "otp", void 0);
+__decorate([
+    (0, class_validator_1.IsEnum)(user_type_constant_js_1.USER_TYPES, {
+        message: "userType must be either vendor or customer",
+    }),
+    __metadata("design:type", String)
+], VerifyOtpDto.prototype, "userType", void 0);
 //# sourceMappingURL=verify-otp.dto.js.map

@@ -17,8 +17,9 @@ const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const crypto_1 = require("crypto");
 const mongoose_2 = require("mongoose");
-const user_schema_1 = require("./schemas/user.schema");
-const vendor_schema_1 = require("./schemas/vendor.schema");
+const user_type_constant_js_1 = require("./constants/user-type.constant.js");
+const user_schema_js_1 = require("./schemas/user.schema.js");
+const vendor_schema_js_1 = require("./schemas/vendor.schema.js");
 let AuthService = class AuthService {
     userModel;
     vendorModel;
@@ -36,35 +37,40 @@ let AuthService = class AuthService {
             message: "otp sent successfully",
         };
     }
-    async verifyOtp(mobileNo, otp) {
+    async verifyOtp(mobileNo, otp, userType) {
         if (!this.mobilePattern.test(mobileNo)) {
             throw new common_1.BadRequestException("mobileNo must be a 10 digit number");
+        }
+        if (!user_type_constant_js_1.USER_TYPES.includes(userType)) {
+            throw new common_1.BadRequestException("userType must be vendor or customer");
         }
         if (otp !== this.demoOtp) {
             throw new common_1.BadRequestException("invalid otp");
         }
-        const existingUser = await this.userModel
-            .findOne({ mobileNo })
-            .lean()
-            .exec();
+        const existingUser = await this.userModel.findOne({ mobileNo }).exec();
         if (existingUser) {
+            if (existingUser.userType !== userType) {
+                existingUser.userType = userType;
+                await existingUser.save();
+            }
             await this.upsertVendorRecord(existingUser.userId, mobileNo);
             return {
                 message: "otp verified",
                 userId: existingUser.userId,
             };
         }
-        const userId = await this.createUserWithVendor(mobileNo);
+        const userId = await this.createUserWithVendor(mobileNo, userType);
         return {
             message: "otp verified",
             userId,
         };
     }
-    async createUserWithVendor(mobileNo) {
+    async createUserWithVendor(mobileNo, userType) {
         const userId = await this.generateUniqueUserId();
         const user = await this.userModel.create({
             mobileNo,
             userId,
+            userType,
         });
         try {
             await this.upsertVendorRecord(userId, mobileNo);
@@ -91,8 +97,8 @@ let AuthService = class AuthService {
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(user_schema_1.User.name)),
-    __param(1, (0, mongoose_1.InjectModel)(vendor_schema_1.Vendor.name)),
+    __param(0, (0, mongoose_1.InjectModel)(user_schema_js_1.User.name)),
+    __param(1, (0, mongoose_1.InjectModel)(vendor_schema_js_1.Vendor.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
         mongoose_2.Model])
 ], AuthService);

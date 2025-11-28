@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from "@nestjs/common";
-import { AuthService } from "./auth.service";
-import { SendOtpDto } from "./dto/send-otp.dto";
-import { VerifyOtpDto } from "./dto/verify-otp.dto";
+import { AuthService } from "./auth.service.js";
+import { SendOtpDto } from "./dto/send-otp.dto.js";
+import { VerifyOtpDto } from "./dto/verify-otp.dto.js";
 
 @Controller("auth")
 export class AuthController {
@@ -14,6 +14,10 @@ export class AuthController {
 
   @Post("verify-otp")
   verifyOtp(@Body() payload: VerifyOtpDto) {
-    return this.authService.verifyOtp(payload.mobileNo, payload.otp);
+    return this.authService.verifyOtp(
+      payload.mobileNo,
+      payload.otp,
+      payload.userType,
+    );
   }
 }

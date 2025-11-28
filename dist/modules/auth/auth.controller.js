@@ -14,9 +14,9 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
-const auth_service_1 = require("./auth.service");
-const send_otp_dto_1 = require("./dto/send-otp.dto");
-const verify_otp_dto_1 = require("./dto/verify-otp.dto");
+const auth_service_js_1 = require("./auth.service.js");
+const send_otp_dto_js_1 = require("./dto/send-otp.dto.js");
+const verify_otp_dto_js_1 = require("./dto/verify-otp.dto.js");
 let AuthController = class AuthController {
     authService;
     constructor(authService) {
@@ -26,7 +26,7 @@ let AuthController = class AuthController {
         return this.authService.sendOtp(payload.mobileNo);
     }
     verifyOtp(payload) {
-        return this.authService.verifyOtp(payload.mobileNo, payload.otp);
+        return this.authService.verifyOtp(payload.mobileNo, payload.otp, payload.userType);
     }
 };
 exports.AuthController = AuthController;
@@ -34,18 +34,18 @@ __decorate([
     (0, common_1.Post)("send-otp"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [send_otp_dto_1.SendOtpDto]),
+    __metadata("design:paramtypes", [send_otp_dto_js_1.SendOtpDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "sendOtp", null);
 __decorate([
     (0, common_1.Post)("verify-otp"),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [verify_otp_dto_1.VerifyOtpDto]),
+    __metadata("design:paramtypes", [verify_otp_dto_js_1.VerifyOtpDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "verifyOtp", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)("auth"),
-    __metadata("design:paramtypes", [auth_service_1.AuthService])
+    __metadata("design:paramtypes", [auth_service_js_1.AuthService])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map
