@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
 import configuration from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { AppController } from './app.controller';
@@ -13,6 +14,12 @@ import { AuthModule } from './modules/auth/auth.module';
       isGlobal: true,
       load: [configuration],
       validate: validateEnv,
+    }),
+    MongooseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        uri: configService.getOrThrow<string>('database.uri'),
+      }),
     }),
     HealthModule,
     AuthModule,

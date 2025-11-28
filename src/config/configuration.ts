@@ -5,6 +5,9 @@ export default () => ({
     port: Number(process.env.PORT ?? 3000),
     globalPrefix: process.env.GLOBAL_PREFIX ?? 'api',
   },
+  database: {
+    uri: process.env.MONGODB_URI ?? '',
+  },
 });
 
 

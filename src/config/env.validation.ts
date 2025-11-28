@@ -1,6 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import {
   IsEnum,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -27,6 +28,10 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   GLOBAL_PREFIX?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  MONGODB_URI!: string;
 }
 
 export const validateEnv = (config: Record<string, unknown>) => {
