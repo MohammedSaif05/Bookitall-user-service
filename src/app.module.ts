@@ -1,12 +1,12 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
-import configuration from './config/configuration';
-import { validateEnv } from './config/env.validation';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { HealthModule } from './modules/health/health.module';
-import { AuthModule } from './modules/auth/auth.module';
+import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { MongooseModule } from "@nestjs/mongoose";
+import configuration from "./config/configuration";
+import { validateEnv } from "./config/env.validation";
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
+import { HealthModule } from "./modules/health/health.module";
+import { AuthModule } from "./modules/auth/auth.module";
 
 @Module({
   imports: [
@@ -18,7 +18,7 @@ import { AuthModule } from './modules/auth/auth.module';
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        uri: configService.getOrThrow<string>('database.uri'),
+        uri: configService.getOrThrow<string>("database.uri"),
       }),
     }),
     HealthModule,

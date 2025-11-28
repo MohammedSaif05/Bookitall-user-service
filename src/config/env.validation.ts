@@ -1,4 +1,4 @@
-import { plainToInstance } from 'class-transformer';
+import { plainToInstance } from "class-transformer";
 import {
   IsEnum,
   IsNotEmpty,
@@ -6,13 +6,18 @@ import {
   IsOptional,
   IsString,
   validateSync,
-} from 'class-validator';
+} from "class-validator";
 
-const NODE_ENV_VALUES = ['development', 'test', 'staging', 'production'] as const;
+const NODE_ENV_VALUES = [
+  "development",
+  "test",
+  "staging",
+  "production",
+] as const;
 
 class EnvironmentVariables {
   @IsEnum(NODE_ENV_VALUES, {
-    message: `NODE_ENV must be one of: ${NODE_ENV_VALUES.join(', ')}`,
+    message: `NODE_ENV must be one of: ${NODE_ENV_VALUES.join(", ")}`,
   })
   @IsOptional()
   NODE_ENV?: (typeof NODE_ENV_VALUES)[number];
@@ -48,10 +53,8 @@ export const validateEnv = (config: Record<string, unknown>) => {
   }
 
   if (!validatedConfig.NODE_ENV) {
-    validatedConfig.NODE_ENV = 'development';
+    validatedConfig.NODE_ENV = "development";
   }
 
   return validatedConfig;
 };
-
-

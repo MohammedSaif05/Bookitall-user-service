@@ -4,9 +4,9 @@ import {
   Injectable,
   NestInterceptor,
   Logger,
-} from '@nestjs/common';
-import type { Request } from 'express';
-import { Observable, tap } from 'rxjs';
+} from "@nestjs/common";
+import type { Request } from "express";
+import { Observable, tap } from "rxjs";
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -26,5 +26,3 @@ export class LoggingInterceptor implements NestInterceptor {
     );
   }
 }
-
-
