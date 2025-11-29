@@ -51,7 +51,12 @@ export class OnboardService {
     // Save the updated vendor
     try {
       const savedVendor = await vendor.save();
-      return savedVendor.toObject();
+      const vendorObject = savedVendor.toObject();
+      // Convert ObjectId to string for proper JSON serialization
+      return {
+        ...vendorObject,
+        _id: vendorObject._id.toString(),
+      };
     } catch (error) {
       throw new BadRequestException(
         `Failed to update vendor: ${error instanceof Error ? error.message : "Unknown error"}`,
