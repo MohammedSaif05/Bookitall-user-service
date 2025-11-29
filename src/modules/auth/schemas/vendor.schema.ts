@@ -3,6 +3,7 @@ import { Document } from "mongoose";
 
 @Schema({
   timestamps: true,
+  collection: "vendors",
 })
 export class Vendor {
   @Prop({ required: true, unique: true })
