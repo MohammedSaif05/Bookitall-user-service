@@ -110,44 +110,36 @@ export class OnboardService {
         _id: vendorObject._id.toString(),
       };
 
-      // Convert nested ObjectIds in breaks array
+      // Remove _id from breaks array - always remove _id even if it exists
       if (result.breaks && Array.isArray(result.breaks)) {
         result.breaks = result.breaks.map((breakItem: unknown) => {
           const breakObj = breakItem as Record<string, unknown>;
-          if (breakObj._id) {
-            const { _id, ...rest } = breakObj;
-            return rest;
-          }
-          return breakObj;
+          // Always destructure to remove _id, even if it doesn't exist
+          const { _id, ...rest } = breakObj;
+          return rest;
         });
       }
 
-      // Convert nested ObjectIds in days array
+      // Remove _id from days array and their nested breaks
       if (result.days && Array.isArray(result.days)) {
         result.days = result.days.map((dayItem: unknown) => {
           const dayObj = dayItem as Record<string, unknown>;
-          const processedDay: Record<string, unknown> = {};
+          // Remove _id from day object
+          const { _id: dayId, breaks, ...dayRest } = dayObj;
           
-          // Process breaks within each day
-          if (dayObj.breaks && Array.isArray(dayObj.breaks)) {
-            processedDay.breaks = dayObj.breaks.map((breakItem: unknown) => {
+          const processedDay: Record<string, unknown> = { ...dayRest };
+          
+          // Process breaks within each day - always remove _id
+          if (breaks && Array.isArray(breaks)) {
+            processedDay.breaks = breaks.map((breakItem: unknown) => {
               const breakObj = breakItem as Record<string, unknown>;
-              if (breakObj._id) {
-                const { _id, ...rest } = breakObj;
-                return rest;
-              }
-              return breakObj;
+              // Always destructure to remove _id
+              const { _id: breakId, ...breakRest } = breakObj;
+              return breakRest;
             });
           } else {
-            processedDay.breaks = dayObj.breaks;
+            processedDay.breaks = breaks;
           }
-          
-          // Copy other day properties (excluding _id)
-          Object.keys(dayObj).forEach((key) => {
-            if (key !== "_id" && key !== "breaks") {
-              processedDay[key] = dayObj[key];
-            }
-          });
           
           return processedDay;
         });
