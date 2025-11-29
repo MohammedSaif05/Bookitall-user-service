@@ -10,6 +10,18 @@ export class Vendor {
 
   @Prop({ required: true, unique: true })
   mobileNo!: string;
+
+  @Prop({ type: Number })
+  step?: number;
+
+  @Prop({ type: String })
+  businessName?: string;
+
+  @Prop({ type: String })
+  businessCategory?: string;
+
+  @Prop({ type: String })
+  businessType?: string;
 }
 
 export type VendorDocument = Vendor & Document;

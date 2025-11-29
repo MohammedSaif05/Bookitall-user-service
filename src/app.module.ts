@@ -7,6 +7,7 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { HealthModule } from "./modules/health/health.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { OnboardModule } from "./onboard/onboard.module";
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AuthModule } from "./modules/auth/auth.module";
     }),
     HealthModule,
     AuthModule,
+    OnboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
