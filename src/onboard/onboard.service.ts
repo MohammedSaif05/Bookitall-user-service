@@ -21,7 +21,7 @@ export class OnboardService {
   async updateVendor(
     userId: string,
     updateVendorDto: UpdateVendorDto,
-  ): Promise<VendorDocument> {
+  ) {
     // Validate that userId in body matches userId in route parameter
     if (updateVendorDto.userId !== userId) {
       throw new BadRequestException(
@@ -50,8 +50,8 @@ export class OnboardService {
 
     // Save the updated vendor
     try {
-      await vendor.save();
-      return vendor;
+      const savedVendor = await vendor.save();
+      return savedVendor.toObject();
     } catch (error) {
       throw new BadRequestException(
         `Failed to update vendor: ${error instanceof Error ? error.message : "Unknown error"}`,
