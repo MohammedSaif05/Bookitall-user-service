@@ -44,6 +44,15 @@ export class Vendor {
 
   @Prop({ type: Number })
   longitude?: number;
+
+  @Prop({ type: String })
+  ownerName?: string;
+
+  @Prop({ type: String })
+  businessEmail?: string;
+
+  @Prop({ type: String })
+  alternatePhoneNumber?: string;
 }
 
 export type VendorDocument = Vendor & Document;

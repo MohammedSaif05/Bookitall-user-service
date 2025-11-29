@@ -68,6 +68,15 @@ export class OnboardService {
     if (updateVendorDto.longitude !== undefined) {
       vendor.longitude = updateVendorDto.longitude;
     }
+    if (updateVendorDto.ownerName !== undefined) {
+      vendor.ownerName = updateVendorDto.ownerName;
+    }
+    if (updateVendorDto.businessEmail !== undefined) {
+      vendor.businessEmail = updateVendorDto.businessEmail;
+    }
+    if (updateVendorDto.alternatePhoneNumber !== undefined) {
+      vendor.alternatePhoneNumber = updateVendorDto.alternatePhoneNumber;
+    }
 
     // Save the updated vendor
     try {

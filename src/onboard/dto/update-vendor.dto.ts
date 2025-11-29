@@ -1,11 +1,13 @@
 import {
+  IsEmail,
   IsLatitude,
   IsLongitude,
   IsNumber,
   IsOptional,
   IsString,
-  IsUrl,
+  Matches,
   Min,
+  IsUrl,
 } from "class-validator";
 
 export class UpdateVendorDto {
@@ -58,4 +60,20 @@ export class UpdateVendorDto {
   @IsLongitude()
   @IsOptional()
   longitude?: number;
+
+  @IsString()
+  @IsOptional()
+  ownerName?: string;
+
+  @IsString()
+  @IsEmail()
+  @IsOptional()
+  businessEmail?: string;
+
+  @IsString()
+  @Matches(/^\d{10}$/, {
+    message: "alternatePhoneNumber must be a 10 digit number",
+  })
+  @IsOptional()
+  alternatePhoneNumber?: string;
 }
