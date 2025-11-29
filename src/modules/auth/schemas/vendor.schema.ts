@@ -23,6 +23,27 @@ export class Vendor {
 
   @Prop({ type: String })
   businessType?: string;
+
+  @Prop({ type: String })
+  address?: string;
+
+  @Prop({ type: String })
+  landmark?: string;
+
+  @Prop({ type: String })
+  googleMapLink?: string;
+
+  @Prop({ type: String })
+  city?: string;
+
+  @Prop({ type: String })
+  pincode?: string;
+
+  @Prop({ type: Number })
+  latitude?: number;
+
+  @Prop({ type: Number })
+  longitude?: number;
 }
 
 export type VendorDocument = Vendor & Document;

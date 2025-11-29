@@ -47,6 +47,27 @@ export class OnboardService {
     if (updateVendorDto.businessType !== undefined) {
       vendor.businessType = updateVendorDto.businessType;
     }
+    if (updateVendorDto.address !== undefined) {
+      vendor.address = updateVendorDto.address;
+    }
+    if (updateVendorDto.landmark !== undefined) {
+      vendor.landmark = updateVendorDto.landmark;
+    }
+    if (updateVendorDto.googleMapLink !== undefined) {
+      vendor.googleMapLink = updateVendorDto.googleMapLink;
+    }
+    if (updateVendorDto.city !== undefined) {
+      vendor.city = updateVendorDto.city;
+    }
+    if (updateVendorDto.pincode !== undefined) {
+      vendor.pincode = updateVendorDto.pincode;
+    }
+    if (updateVendorDto.latitude !== undefined) {
+      vendor.latitude = updateVendorDto.latitude;
+    }
+    if (updateVendorDto.longitude !== undefined) {
+      vendor.longitude = updateVendorDto.longitude;
+    }
 
     // Save the updated vendor
     try {
