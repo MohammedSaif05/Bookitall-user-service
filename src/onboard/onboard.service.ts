@@ -77,6 +77,27 @@ export class OnboardService {
     if (updateVendorDto.alternatePhoneNumber !== undefined) {
       vendor.alternatePhoneNumber = updateVendorDto.alternatePhoneNumber;
     }
+    if (updateVendorDto.working_days !== undefined) {
+      vendor.workingDays = updateVendorDto.working_days;
+    }
+    if (updateVendorDto.start_time !== undefined) {
+      vendor.startTime = updateVendorDto.start_time;
+    }
+    if (updateVendorDto.end_time !== undefined) {
+      vendor.endTime = updateVendorDto.end_time;
+    }
+    if (updateVendorDto.has_break_hours !== undefined) {
+      vendor.hasBreakHours = updateVendorDto.has_break_hours;
+    }
+    if (updateVendorDto.breaks !== undefined) {
+      vendor.breaks = updateVendorDto.breaks;
+    }
+    if (updateVendorDto.different_timings_each_day !== undefined) {
+      vendor.differentTimingsEachDay = updateVendorDto.different_timings_each_day;
+    }
+    if (updateVendorDto.days !== undefined) {
+      vendor.days = updateVendorDto.days;
+    }
 
     // Save the updated vendor
     try {

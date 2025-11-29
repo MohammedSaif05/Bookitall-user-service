@@ -1,4 +1,6 @@
 import {
+  IsArray,
+  IsBoolean,
   IsEmail,
   IsLatitude,
   IsLongitude,
@@ -8,7 +10,11 @@ import {
   Matches,
   Min,
   IsUrl,
+  ValidateNested,
 } from "class-validator";
+import { Type } from "class-transformer";
+import { BreakDto } from "./break.dto.js";
+import { DayDto } from "./day.dto.js";
 
 export class UpdateVendorDto {
   @IsString()
@@ -76,4 +82,43 @@ export class UpdateVendorDto {
   })
   @IsOptional()
   alternatePhoneNumber?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  working_days?: string[];
+
+  @IsString()
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, {
+    message: "start_time must be in HH:MM format (24-hour)",
+  })
+  @IsOptional()
+  start_time?: string;
+
+  @IsString()
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, {
+    message: "end_time must be in HH:MM format (24-hour)",
+  })
+  @IsOptional()
+  end_time?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  has_break_hours?: boolean;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BreakDto)
+  @IsOptional()
+  breaks?: BreakDto[];
+
+  @IsBoolean()
+  @IsOptional()
+  different_timings_each_day?: boolean;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DayDto)
+  @IsOptional()
+  days?: DayDto[];
 }

@@ -53,6 +53,53 @@ export class Vendor {
 
   @Prop({ type: String })
   alternatePhoneNumber?: string;
+
+  @Prop({ type: [String] })
+  workingDays?: string[];
+
+  @Prop({ type: String })
+  startTime?: string;
+
+  @Prop({ type: String })
+  endTime?: string;
+
+  @Prop({ type: Boolean })
+  hasBreakHours?: boolean;
+
+  @Prop({
+    type: [
+      {
+        break_start: String,
+        break_end: String,
+      },
+    ],
+  })
+  breaks?: Array<{ break_start: string; break_end: string }>;
+
+  @Prop({ type: Boolean })
+  differentTimingsEachDay?: boolean;
+
+  @Prop({
+    type: [
+      {
+        day: String,
+        start_time: String,
+        end_time: String,
+        breaks: [
+          {
+            break_start: String,
+            break_end: String,
+          },
+        ],
+      },
+    ],
+  })
+  days?: Array<{
+    day: string;
+    start_time: string;
+    end_time: string;
+    breaks: Array<{ break_start: string; break_end: string }>;
+  }>;
 }
 
 export type VendorDocument = Vendor & Document;
