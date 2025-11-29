@@ -103,11 +103,57 @@ export class OnboardService {
     try {
       const savedVendor = await vendor.save();
       const vendorObject = savedVendor.toObject();
+      
       // Convert ObjectId to string for proper JSON serialization
-      return {
+      const result: Record<string, unknown> = {
         ...vendorObject,
         _id: vendorObject._id.toString(),
       };
+
+      // Convert nested ObjectIds in breaks array
+      if (result.breaks && Array.isArray(result.breaks)) {
+        result.breaks = result.breaks.map((breakItem: unknown) => {
+          const breakObj = breakItem as Record<string, unknown>;
+          if (breakObj._id) {
+            const { _id, ...rest } = breakObj;
+            return rest;
+          }
+          return breakObj;
+        });
+      }
+
+      // Convert nested ObjectIds in days array
+      if (result.days && Array.isArray(result.days)) {
+        result.days = result.days.map((dayItem: unknown) => {
+          const dayObj = dayItem as Record<string, unknown>;
+          const processedDay: Record<string, unknown> = {};
+          
+          // Process breaks within each day
+          if (dayObj.breaks && Array.isArray(dayObj.breaks)) {
+            processedDay.breaks = dayObj.breaks.map((breakItem: unknown) => {
+              const breakObj = breakItem as Record<string, unknown>;
+              if (breakObj._id) {
+                const { _id, ...rest } = breakObj;
+                return rest;
+              }
+              return breakObj;
+            });
+          } else {
+            processedDay.breaks = dayObj.breaks;
+          }
+          
+          // Copy other day properties (excluding _id)
+          Object.keys(dayObj).forEach((key) => {
+            if (key !== "_id" && key !== "breaks") {
+              processedDay[key] = dayObj[key];
+            }
+          });
+          
+          return processedDay;
+        });
+      }
+
+      return result;
     } catch (error) {
       throw new BadRequestException(
         `Failed to update vendor: ${error instanceof Error ? error.message : "Unknown error"}`,
