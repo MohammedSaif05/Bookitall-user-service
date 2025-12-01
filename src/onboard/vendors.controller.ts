@@ -9,5 +9,10 @@ export class VendorsController {
   getByLocation(@Param("location") location: string) {
     return this.onboardService.getVendorsByLocation(location);
   }
+
+  @Get("pending")
+  getPendingVerificationVendors() {
+    return this.onboardService.getVendorsPendingVerification();
+  }
 }
 
