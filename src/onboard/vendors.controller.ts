@@ -5,14 +5,14 @@ import { OnboardService } from "./onboard.service.js";
 export class VendorsController {
   constructor(private readonly onboardService: OnboardService) {}
 
-  @Get(":location")
-  getByLocation(@Param("location") location: string) {
-    return this.onboardService.getVendorsByLocation(location);
-  }
-
   @Get("pending")
   getPendingVerificationVendors() {
     return this.onboardService.getVendorsPendingVerification();
+  }
+
+  @Get(":location")
+  getByLocation(@Param("location") location: string) {
+    return this.onboardService.getVendorsByLocation(location);
   }
 }
 
