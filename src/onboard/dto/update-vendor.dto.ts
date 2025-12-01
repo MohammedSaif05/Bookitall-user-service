@@ -125,4 +125,8 @@ export class UpdateVendorDto {
   @IsBoolean()
   @IsOptional()
   isOnBoardCompleted?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isBusinessVerified?: boolean;
 }

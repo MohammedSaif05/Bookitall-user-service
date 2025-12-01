@@ -39,6 +39,9 @@ export class OnboardService {
     // Update the vendor with the new fields
     vendor.step = updateVendorDto.step;
     vendor.isOnBoardCompleted = updateVendorDto.step >= 4;
+    if (updateVendorDto.isBusinessVerified !== undefined) {
+      vendor.isBusinessVerified = updateVendorDto.isBusinessVerified;
+    }
     if (updateVendorDto.businessName !== undefined) {
       vendor.businessName = updateVendorDto.businessName;
     }
@@ -103,54 +106,105 @@ export class OnboardService {
     // Save the updated vendor
     try {
       const savedVendor = await vendor.save();
-      const vendorObject = savedVendor.toObject();
-      
-      // Convert ObjectId to string for proper JSON serialization
-      const result: Record<string, unknown> = {
-        ...vendorObject,
-        _id: vendorObject._id.toString(),
-      };
-
-      // Remove _id from breaks array - always remove _id even if it exists
-      if (result.breaks && Array.isArray(result.breaks)) {
-        result.breaks = result.breaks.map((breakItem: unknown) => {
-          const breakObj = breakItem as Record<string, unknown>;
-          // Always destructure to remove _id, even if it doesn't exist
-          const { _id, ...rest } = breakObj;
-          return rest;
-        });
-      }
-
-      // Remove _id from days array and their nested breaks
-      if (result.days && Array.isArray(result.days)) {
-        result.days = result.days.map((dayItem: unknown) => {
-          const dayObj = dayItem as Record<string, unknown>;
-          // Remove _id from day object
-          const { _id: dayId, breaks, ...dayRest } = dayObj;
-          
-          const processedDay: Record<string, unknown> = { ...dayRest };
-          
-          // Process breaks within each day - always remove _id
-          if (breaks && Array.isArray(breaks)) {
-            processedDay.breaks = breaks.map((breakItem: unknown) => {
-              const breakObj = breakItem as Record<string, unknown>;
-              // Always destructure to remove _id
-              const { _id: breakId, ...breakRest } = breakObj;
-              return breakRest;
-            });
-          } else {
-            processedDay.breaks = breaks;
-          }
-          
-          return processedDay;
-        });
-      }
-
-      return result;
+      return this.sanitizeVendor(savedVendor);
     } catch (error) {
       throw new BadRequestException(
         `Failed to update vendor: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
+  }
+
+  async getVendorsByLocation(location: string) {
+    const trimmedLocation = location?.trim();
+    if (!trimmedLocation) {
+      throw new BadRequestException("location is required");
+    }
+
+    const regex = new RegExp(
+      `^${this.escapeRegExp(trimmedLocation)}$`,
+      "i",
+    );
+
+    const vendors = await this.vendorModel
+      .find({
+        city: { $regex: regex },
+        isBusinessVerified: true,
+      })
+      .lean()
+      .exec();
+
+    return vendors.map((vendor) => this.sanitizeVendor(vendor));
+  }
+
+  private sanitizeVendor(
+    vendor: VendorDocument | Record<string, unknown>,
+  ): Record<string, unknown> {
+    const vendorObject: Record<string, unknown> =
+      typeof (vendor as VendorDocument).toObject === "function"
+        ? (vendor as VendorDocument).toObject()
+        : { ...(vendor as Record<string, unknown>) };
+
+    const result: Record<string, unknown> = {
+      ...vendorObject,
+    };
+
+    if (vendorObject._id) {
+      result._id = this.toStringId(vendorObject._id);
+    }
+
+    result.breaks = this.sanitizeBreaks(result.breaks);
+    result.days = this.sanitizeDays(result.days);
+
+    return result;
+  }
+
+  private sanitizeBreaks(
+    breaks: unknown,
+  ): Array<Record<string, unknown>> | unknown {
+    if (!Array.isArray(breaks)) {
+      return breaks;
+    }
+
+    return breaks.map((breakItem: unknown) => {
+      const breakObj = breakItem as Record<string, unknown>;
+      const { _id, ...rest } = breakObj;
+      return rest;
+    });
+  }
+
+  private sanitizeDays(days: unknown): Array<Record<string, unknown>> | unknown {
+    if (!Array.isArray(days)) {
+      return days;
+    }
+
+    return days.map((dayItem: unknown) => {
+      const dayObj = dayItem as Record<string, unknown>;
+      const { _id, breaks, ...dayRest } = dayObj;
+      const sanitizedDay: Record<string, unknown> = { ...dayRest };
+      sanitizedDay.breaks = this.sanitizeBreaks(breaks);
+      return sanitizedDay;
+    });
+  }
+
+  private toStringId(value: unknown): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+    if (typeof value === "string") {
+      return value;
+    }
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      "toString" in value &&
+      typeof (value as { toString: () => string }).toString === "function"
+    ) {
+      return (value as { toString: () => string }).toString();
+    }
+    return undefined;
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 }

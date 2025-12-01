@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { OnboardController } from "./onboard.controller.js";
+import { VendorsController } from "./vendors.controller.js";
 import { OnboardService } from "./onboard.service.js";
 import { Vendor, VendorSchema } from "../modules/auth/schemas/vendor.schema.js";
 
@@ -8,7 +9,7 @@ import { Vendor, VendorSchema } from "../modules/auth/schemas/vendor.schema.js";
   imports: [
     MongooseModule.forFeature([{ name: Vendor.name, schema: VendorSchema }]),
   ],
-  controllers: [OnboardController],
+  controllers: [OnboardController, VendorsController],
   providers: [OnboardService],
 })
 export class OnboardModule {}

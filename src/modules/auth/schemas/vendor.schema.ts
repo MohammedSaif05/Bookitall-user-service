@@ -103,6 +103,9 @@ export class Vendor {
 
   @Prop({ type: Boolean, default: false })
   isOnBoardCompleted?: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  isBusinessVerified?: boolean;
 }
 
 export type VendorDocument = Vendor & Document;
