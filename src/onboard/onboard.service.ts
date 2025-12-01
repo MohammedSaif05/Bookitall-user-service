@@ -160,6 +160,16 @@ export class OnboardService {
     return vendors.map((vendor) => this.sanitizeVendor(vendor));
   }
 
+  async getVendorByUserId(userId: string) {
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    return this.sanitizeVendor(vendor);
+  }
+
   private sanitizeVendor(
     vendor: VendorDocument | Record<string, unknown>,
   ): Record<string, unknown> {
