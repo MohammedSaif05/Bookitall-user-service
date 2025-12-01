@@ -10,6 +10,11 @@ export class VendorsController {
     return this.onboardService.getVendorsPendingVerification();
   }
 
+  @Get("verified-vendors")
+  getVerifiedVendors() {
+    return this.onboardService.getVerifiedVendors();
+  }
+
   @Get(":location")
   getByLocation(@Param("location") location: string) {
     return this.onboardService.getVendorsByLocation(location);

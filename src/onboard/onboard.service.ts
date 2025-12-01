@@ -148,6 +148,18 @@ export class OnboardService {
     return vendors.map((vendor) => this.sanitizeVendor(vendor));
   }
 
+  async getVerifiedVendors() {
+    const vendors = await this.vendorModel
+      .find({
+        isOnBoardCompleted: true,
+        isBusinessVerified: true,
+      })
+      .lean()
+      .exec();
+
+    return vendors.map((vendor) => this.sanitizeVendor(vendor));
+  }
+
   private sanitizeVendor(
     vendor: VendorDocument | Record<string, unknown>,
   ): Record<string, unknown> {
