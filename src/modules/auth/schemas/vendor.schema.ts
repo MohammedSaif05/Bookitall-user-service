@@ -100,6 +100,9 @@ export class Vendor {
     end_time: string;
     breaks: Array<{ break_start: string; break_end: string }>;
   }>;
+
+  @Prop({ type: Boolean, default: false })
+  isOnBoardCompleted?: boolean;
 }
 
 export type VendorDocument = Vendor & Document;

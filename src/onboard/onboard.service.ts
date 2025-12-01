@@ -38,6 +38,7 @@ export class OnboardService {
 
     // Update the vendor with the new fields
     vendor.step = updateVendorDto.step;
+    vendor.isOnBoardCompleted = updateVendorDto.step >= 4;
     if (updateVendorDto.businessName !== undefined) {
       vendor.businessName = updateVendorDto.businessName;
     }

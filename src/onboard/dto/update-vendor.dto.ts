@@ -121,4 +121,8 @@ export class UpdateVendorDto {
   @Type(() => DayDto)
   @IsOptional()
   days?: DayDto[];
+
+  @IsBoolean()
+  @IsOptional()
+  isOnBoardCompleted?: boolean;
 }
