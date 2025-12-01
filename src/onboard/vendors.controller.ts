@@ -15,8 +15,8 @@ export class VendorsController {
     return this.onboardService.getVerifiedVendors();
   }
 
-  @Get(":location")
-  getByLocation(@Param("location") location: string) {
+  @Get("verified-vendors/:location")
+  getVerifiedVendorsByLocation(@Param("location") location: string) {
     return this.onboardService.getVendorsByLocation(location);
   }
 }
