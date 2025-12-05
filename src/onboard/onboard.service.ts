@@ -143,6 +143,35 @@ export class OnboardService {
     return vendors.map((vendor) => this.sanitizeVendor(vendor));
   }
 
+  async getPendingVendorsList() {
+    const vendors = await this.vendorModel
+      .find(
+        {
+          isOnBoardCompleted: true,
+          isBusinessVerified: false,
+        },
+        {
+          userId: 1,
+          businessName: 1,
+          businessType: 1,
+          businessCategory: 1,
+          city: 1,
+          mobileNo: 1,
+        },
+      )
+      .lean()
+      .exec();
+
+    return vendors.map((vendor) => ({
+      userId: vendor.userId,
+      businessName: vendor.businessName,
+      businessType: vendor.businessType,
+      businessCategory: vendor.businessCategory,
+      location: vendor.city,
+      mobileNumber: vendor.mobileNo,
+    }));
+  }
+
   async getVerifiedVendors() {
     const vendors = await this.vendorModel
       .find({

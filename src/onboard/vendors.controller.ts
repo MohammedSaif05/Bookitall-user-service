@@ -10,6 +10,11 @@ export class VendorsController {
     return this.onboardService.getVendorsPendingVerification();
   }
 
+  @Get("pending-list")
+  getPendingVendorsList() {
+    return this.onboardService.getPendingVendorsList();
+  }
+
   @Get("verified-vendors")
   getVerifiedVendors() {
     return this.onboardService.getVerifiedVendors();
