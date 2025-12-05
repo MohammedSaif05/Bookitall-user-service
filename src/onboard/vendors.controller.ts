@@ -15,6 +15,11 @@ export class VendorsController {
     return this.onboardService.getVerifiedVendors();
   }
 
+  @Get("verified-vendors-list")
+  getVerifiedVendorsList() {
+    return this.onboardService.getVerifiedVendorsList();
+  }
+
   @Get("verified-vendors/:location")
   getVerifiedVendorsByLocation(@Param("location") location: string) {
     return this.onboardService.getVendorsByLocation(location);
@@ -25,4 +30,3 @@ export class VendorsController {
     return this.onboardService.getVendorByUserId(userId);
   }
 }
-

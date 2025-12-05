@@ -18,10 +18,7 @@ export class OnboardService {
     private readonly vendorModel: Model<VendorDocument>,
   ) {}
 
-  async updateVendor(
-    userId: string,
-    updateVendorDto: UpdateVendorDto,
-  ) {
+  async updateVendor(userId: string, updateVendorDto: UpdateVendorDto) {
     // Validate that userId in body matches userId in route parameter
     if (updateVendorDto.userId !== userId) {
       throw new BadRequestException(
@@ -97,7 +94,8 @@ export class OnboardService {
       vendor.breaks = updateVendorDto.breaks;
     }
     if (updateVendorDto.different_timings_each_day !== undefined) {
-      vendor.differentTimingsEachDay = updateVendorDto.different_timings_each_day;
+      vendor.differentTimingsEachDay =
+        updateVendorDto.different_timings_each_day;
     }
     if (updateVendorDto.days !== undefined) {
       vendor.days = updateVendorDto.days;
@@ -120,10 +118,7 @@ export class OnboardService {
       throw new BadRequestException("location is required");
     }
 
-    const regex = new RegExp(
-      `^${this.escapeRegExp(trimmedLocation)}$`,
-      "i",
-    );
+    const regex = new RegExp(`^${this.escapeRegExp(trimmedLocation)}$`, "i");
 
     const vendors = await this.vendorModel
       .find({
@@ -160,6 +155,35 @@ export class OnboardService {
     return vendors.map((vendor) => this.sanitizeVendor(vendor));
   }
 
+  async getVerifiedVendorsList() {
+    const vendors = await this.vendorModel
+      .find(
+        {
+          isOnBoardCompleted: true,
+          isBusinessVerified: true,
+        },
+        {
+          userId: 1,
+          businessName: 1,
+          businessType: 1,
+          businessCategory: 1,
+          city: 1,
+          mobileNo: 1,
+        },
+      )
+      .lean()
+      .exec();
+
+    return vendors.map((vendor) => ({
+      userId: vendor.userId,
+      businessName: vendor.businessName,
+      businessType: vendor.businessType,
+      businessCategory: vendor.businessCategory,
+      location: vendor.city,
+      mobileNumber: vendor.mobileNo,
+    }));
+  }
+
   async getVendorByUserId(userId: string) {
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
@@ -175,7 +199,7 @@ export class OnboardService {
   ): Record<string, unknown> {
     const vendorObject: Record<string, unknown> =
       typeof (vendor as VendorDocument).toObject === "function"
-        ? (vendor as VendorDocument).toObject()
+        ? ((vendor as VendorDocument).toObject() as Record<string, unknown>)
         : { ...(vendor as Record<string, unknown>) };
 
     const result: Record<string, unknown> = {
@@ -192,27 +216,27 @@ export class OnboardService {
     return result;
   }
 
-  private sanitizeBreaks(
-    breaks: unknown,
-  ): Array<Record<string, unknown>> | unknown {
+  private sanitizeBreaks(breaks: unknown): unknown {
     if (!Array.isArray(breaks)) {
       return breaks;
     }
 
     return breaks.map((breakItem: unknown) => {
       const breakObj = breakItem as Record<string, unknown>;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _id, ...rest } = breakObj;
       return rest;
     });
   }
 
-  private sanitizeDays(days: unknown): Array<Record<string, unknown>> | unknown {
+  private sanitizeDays(days: unknown): unknown {
     if (!Array.isArray(days)) {
       return days;
     }
 
     return days.map((dayItem: unknown) => {
       const dayObj = dayItem as Record<string, unknown>;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _id, breaks, ...dayRest } = dayObj;
       const sanitizedDay: Record<string, unknown> = { ...dayRest };
       sanitizedDay.breaks = this.sanitizeBreaks(breaks);

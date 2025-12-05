@@ -11,4 +11,3 @@ export class AdminController {
     return this.adminService.login(payload.email, payload.password);
   }
 }
-

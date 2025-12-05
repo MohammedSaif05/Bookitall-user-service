@@ -23,4 +23,3 @@ export class DayDto {
   @Type(() => BreakDto)
   breaks!: BreakDto[];
 }
-

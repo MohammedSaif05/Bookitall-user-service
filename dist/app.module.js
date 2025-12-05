@@ -19,6 +19,7 @@ const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const health_module_1 = require("./modules/health/health.module");
 const auth_module_1 = require("./modules/auth/auth.module");
+const onboard_module_1 = require("./onboard/onboard.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -38,6 +39,7 @@ exports.AppModule = AppModule = __decorate([
             }),
             health_module_1.HealthModule,
             auth_module_1.AuthModule,
+            onboard_module_1.OnboardModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

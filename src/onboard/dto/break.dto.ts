@@ -13,4 +13,3 @@ export class BreakDto {
   })
   break_end!: string;
 }
-
