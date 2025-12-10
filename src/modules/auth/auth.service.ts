@@ -8,7 +8,6 @@ import { randomBytes } from "crypto";
 import { Model } from "mongoose";
 import { USER_TYPES } from "./constants/user-type.constant.js";
 import type { UserType } from "./constants/user-type.constant.js";
-import { Customer, CustomerDocument } from "./schemas/customer.schema.js";
 import { User, UserDocument } from "./schemas/user.schema.js";
 import { Vendor, VendorDocument } from "./schemas/vendor.schema.js";
 
@@ -20,8 +19,6 @@ export class AuthService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
-    @InjectModel(Customer.name)
-    private readonly customerModel: Model<CustomerDocument>,
     @InjectModel(Vendor.name)
     private readonly vendorModel: Model<VendorDocument>,
   ) {}
@@ -106,15 +103,9 @@ export class AuthService {
         { userId, mobileNo },
         { upsert: true },
       );
-      await this.customerModel.deleteOne({ userId }).exec();
       return;
     }
 
-    await this.customerModel.updateOne(
-      { userId },
-      { userId, mobileNo },
-      { upsert: true },
-    );
     await this.vendorModel.deleteOne({ userId }).exec();
   }
 
