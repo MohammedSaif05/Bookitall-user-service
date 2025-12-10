@@ -11,6 +11,7 @@ import {
   Vendor,
   VendorDocument,
 } from "../modules/auth/schemas/vendor.schema.js";
+import { AddVendorServiceDto } from "./dto/add-vendor-service.dto.js";
 import { UpdateVendorDto } from "./dto/update-vendor.dto.js";
 import { UpdateVendorDocumentDto } from "./dto/update-vendor-document.dto.js";
 import { UpdateVendorImagesDto } from "./dto/update-vendor-images.dto.js";
@@ -313,6 +314,33 @@ export class OnboardService {
     vendor.documentRejectMessage = rejectVendorDocumentDto.message;
 
     const saved = await vendor.save();
+    return this.sanitizeVendor(saved);
+  }
+
+  async addVendorService(
+    userId: string,
+    addVendorServiceDto: AddVendorServiceDto,
+  ) {
+    if (addVendorServiceDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const servicesToAdd = addVendorServiceDto.services ?? [];
+    if (!Array.isArray(servicesToAdd) || servicesToAdd.length === 0) {
+      throw new BadRequestException("services must contain at least one service");
+    }
+
+    vendor.services = [...(vendor.services ?? []), ...servicesToAdd];
+    const saved = await vendor.save();
+
     return this.sanitizeVendor(saved);
   }
 

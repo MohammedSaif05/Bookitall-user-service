@@ -124,6 +124,26 @@ export class Vendor {
 
   @Prop({ type: String })
   documentRejectMessage?: string;
+
+  @Prop({
+    type: [
+      {
+        serviceName: String,
+        serviceDuration: Number,
+        serviceCost: Number,
+        gender: {
+          type: String,
+          enum: ["male", "female", "both"],
+        },
+      },
+    ],
+  })
+  services?: Array<{
+    serviceName: string;
+    serviceDuration: number;
+    serviceCost: number;
+    gender: "male" | "female" | "both";
+  }>;
 }
 
 export type VendorDocument = Vendor & Document;
