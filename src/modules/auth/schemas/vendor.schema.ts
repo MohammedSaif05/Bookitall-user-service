@@ -125,6 +125,9 @@ export class Vendor {
   @Prop({ type: String })
   documentRejectMessage?: string;
 
+  @Prop({ type: String, unique: true, sparse: true })
+  shopId?: string;
+
   @Prop({
     type: [
       {

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { Model } from "mongoose";
 import { R2Service } from "../common/storage/r2.service.js";
 import {
@@ -410,9 +410,20 @@ export class OnboardService {
     vendor.isBusinessDocumentApproved = true;
     vendor.imageRejectMessage = undefined;
     vendor.documentRejectMessage = undefined;
+    if (!vendor.shopId) {
+      vendor.shopId = await this.generateUniqueShopId();
+    }
 
     const saved = await vendor.save();
     return this.sanitizeVendor(saved);
+  }
+
+  private async generateUniqueShopId(): Promise<string> {
+    while (true) {
+      const id = randomBytes(6).toString("base64url").slice(0, 10);
+      const exists = await this.vendorModel.exists({ shopId: id });
+      if (!exists) return id;
+    }
   }
 
   async getPendingVendorsList() {
