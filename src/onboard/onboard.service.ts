@@ -14,6 +14,8 @@ import {
 import { UpdateVendorDto } from "./dto/update-vendor.dto.js";
 import { UpdateVendorDocumentDto } from "./dto/update-vendor-document.dto.js";
 import { UpdateVendorImagesDto } from "./dto/update-vendor-images.dto.js";
+import { RejectVendorDocumentDto } from "./dto/reject-vendor-document.dto.js";
+import { RejectVendorImagesDto } from "./dto/reject-vendor-images.dto.js";
 
 @Injectable()
 export class OnboardService {
@@ -266,6 +268,52 @@ export class OnboardService {
         `Failed to upload business document: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
+  }
+
+  async rejectVendorImages(
+    userId: string,
+    rejectVendorImagesDto: RejectVendorImagesDto,
+  ) {
+    if (rejectVendorImagesDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    vendor.isBusinessImageApproved = false;
+    vendor.imageRejectMessage = rejectVendorImagesDto.message;
+
+    const saved = await vendor.save();
+    return this.sanitizeVendor(saved);
+  }
+
+  async rejectVendorDocument(
+    userId: string,
+    rejectVendorDocumentDto: RejectVendorDocumentDto,
+  ) {
+    if (rejectVendorDocumentDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    vendor.isBusinessDocumentApproved = false;
+    vendor.documentRejectMessage = rejectVendorDocumentDto.message;
+
+    const saved = await vendor.save();
+    return this.sanitizeVendor(saved);
   }
 
   async getPendingVendorsList() {

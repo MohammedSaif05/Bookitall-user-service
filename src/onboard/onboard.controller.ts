@@ -11,6 +11,8 @@ import { OnboardService } from "./onboard.service.js";
 import { UpdateVendorDto } from "./dto/update-vendor.dto.js";
 import { UpdateVendorDocumentDto } from "./dto/update-vendor-document.dto.js";
 import { UpdateVendorImagesDto } from "./dto/update-vendor-images.dto.js";
+import { RejectVendorDocumentDto } from "./dto/reject-vendor-document.dto.js";
+import { RejectVendorImagesDto } from "./dto/reject-vendor-images.dto.js";
 
 @Controller("vendor")
 export class OnboardController {
@@ -50,5 +52,21 @@ export class OnboardController {
     @Body() payload: UpdateVendorDocumentDto,
   ) {
     return this.onboardService.updateVendorDocument(userId, payload, files);
+  }
+
+  @Patch(":userId/reject-images")
+  async rejectVendorImages(
+    @Param("userId") userId: string,
+    @Body() payload: RejectVendorImagesDto,
+  ) {
+    return this.onboardService.rejectVendorImages(userId, payload);
+  }
+
+  @Patch(":userId/reject-document")
+  async rejectVendorDocument(
+    @Param("userId") userId: string,
+    @Body() payload: RejectVendorDocumentDto,
+  ) {
+    return this.onboardService.rejectVendorDocument(userId, payload);
   }
 }

@@ -112,6 +112,18 @@ export class Vendor {
 
   @Prop({ type: String })
   businessDocument?: string;
+
+  @Prop({ type: Boolean, default: null })
+  isBusinessImageApproved?: boolean | null;
+
+  @Prop({ type: String })
+  imageRejectMessage?: string;
+
+  @Prop({ type: Boolean, default: null })
+  isBusinessDocumentApproved?: boolean | null;
+
+  @Prop({ type: String })
+  documentRejectMessage?: string;
 }
 
 export type VendorDocument = Vendor & Document;
