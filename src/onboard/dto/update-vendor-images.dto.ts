@@ -1,13 +1,8 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsString } from "class-validator";
+import { IsNotEmpty, IsString } from "class-validator";
 
 export class UpdateVendorImagesDto {
   @IsString()
+  @IsNotEmpty()
   userId!: string;
-
-  @IsArray()
-  @ArrayMinSize(2)
-  @ArrayMaxSize(2)
-  @IsString({ each: true })
-  businessImages!: string[];
 }
 

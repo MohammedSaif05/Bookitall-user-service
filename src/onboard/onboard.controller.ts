@@ -1,4 +1,12 @@
-import { Body, Controller, Param, Patch } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Param,
+  Patch,
+  UploadedFiles,
+  UseInterceptors,
+} from "@nestjs/common";
+import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { OnboardService } from "./onboard.service.js";
 import { UpdateVendorDto } from "./dto/update-vendor.dto.js";
 import { UpdateVendorImagesDto } from "./dto/update-vendor-images.dto.js";
@@ -16,10 +24,17 @@ export class OnboardController {
   }
 
   @Patch(":userId/business-images")
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: "businessImages", maxCount: 2 }]),
+  )
   async updateVendorImages(
     @Param("userId") userId: string,
+    @UploadedFiles()
+    files: {
+      businessImages?: Array<{ buffer: Buffer; mimetype: string }>;
+    },
     @Body() payload: UpdateVendorImagesDto,
   ) {
-    return this.onboardService.updateVendorImages(userId, payload);
+    return this.onboardService.updateVendorImages(userId, payload, files);
   }
 }

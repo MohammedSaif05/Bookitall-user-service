@@ -150,6 +150,7 @@ export class OnboardService {
   async updateVendorImages(
     userId: string,
     updateVendorImagesDto: UpdateVendorImagesDto,
+    files: { businessImages?: Array<{ buffer: Buffer; mimetype: string }> },
   ) {
     if (updateVendorImagesDto.userId !== userId) {
       throw new BadRequestException(
@@ -163,21 +164,23 @@ export class OnboardService {
       throw new NotFoundException(`Vendor with userId ${userId} not found`);
     }
 
-    if (
-      !Array.isArray(updateVendorImagesDto.businessImages) ||
-      updateVendorImagesDto.businessImages.length !== 2
-    ) {
-      throw new BadRequestException("businessImages must contain exactly 2 items");
+    const images = files.businessImages ?? [];
+
+    if (!Array.isArray(images) || images.length !== 2) {
+      throw new BadRequestException("businessImages must contain exactly 2 files");
     }
 
     const newKeys: string[] = [];
     const newUrls: string[] = [];
 
     try {
-      for (const [index, image] of updateVendorImagesDto.businessImages.entries()) {
-        const { buffer, contentType } = this.decodeBase64Image(image);
+      for (const [index, file] of images.entries()) {
+        if (!file.buffer || !file.mimetype) {
+          throw new BadRequestException("Invalid file upload");
+        }
+
         const key = `vendors/${userId}/business-${randomUUID()}-${index}`;
-        await this.r2Service.uploadObject(key, buffer, contentType);
+        await this.r2Service.uploadObject(key, file.buffer, file.mimetype);
         newKeys.push(key);
         newUrls.push(this.r2Service.getPublicUrl(key));
       }
@@ -358,29 +361,5 @@ export class OnboardService {
 
   private escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
-  private decodeBase64Image(image: string): { buffer: Buffer; contentType: string } {
-    if (!image || typeof image !== "string") {
-      throw new BadRequestException("Each business image must be a base64 string");
-    }
-
-    let base64Data = image;
-    let contentType = "application/octet-stream";
-
-    const dataUriMatch = image.match(/^data:(.+);base64,(.*)$/);
-    if (dataUriMatch) {
-      contentType = dataUriMatch[1];
-      base64Data = dataUriMatch[2];
-    }
-
-    try {
-      const buffer = Buffer.from(base64Data, "base64");
-      return { buffer, contentType };
-    } catch (error) {
-      throw new BadRequestException(
-        `Invalid base64 image data: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
   }
 }
