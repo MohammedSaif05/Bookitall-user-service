@@ -4,6 +4,7 @@ import { AdminController } from "./admin.controller.js";
 import { AdminService } from "./admin.service.js";
 import { AuthController } from "./auth.controller.js";
 import { AuthService } from "./auth.service.js";
+import { CustomerController } from "./customer.controller.js";
 import { Admin, AdminSchema } from "./schemas/admin.schema.js";
 import { User, UserSchema } from "./schemas/user.schema.js";
 import { Vendor, VendorSchema } from "./schemas/vendor.schema.js";
@@ -16,7 +17,7 @@ import { Vendor, VendorSchema } from "./schemas/vendor.schema.js";
       { name: Admin.name, schema: AdminSchema },
     ]),
   ],
-  controllers: [AuthController, AdminController],
+  controllers: [AuthController, AdminController, CustomerController],
   providers: [AuthService, AdminService],
 })
 export class AuthModule {}

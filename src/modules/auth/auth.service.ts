@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { randomBytes } from "crypto";
@@ -107,6 +108,27 @@ export class AuthService {
     }
 
     await this.vendorModel.deleteOne({ userId }).exec();
+  }
+
+  async updateCustomerDetails(userId: string, customerName: string) {
+    const user = await this.userModel.findOne({ userId }).exec();
+
+    if (!user) {
+      throw new NotFoundException(`User with userId ${userId} not found`);
+    }
+
+    if (user.userType !== "customer") {
+      throw new BadRequestException("user is not a customer");
+    }
+
+    user.customerName = customerName;
+    await user.save();
+
+    return {
+      message: "customer details updated",
+      userId: user.userId,
+      customerName: user.customerName,
+    };
   }
 
   private async generateUniqueUserId(): Promise<string> {

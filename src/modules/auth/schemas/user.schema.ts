@@ -15,6 +15,9 @@ export class User {
 
   @Prop({ required: true, enum: USER_TYPES })
   userType!: UserType;
+
+  @Prop({ required: false })
+  customerName?: string;
 }
 
 export type UserDocument = User & Document;
