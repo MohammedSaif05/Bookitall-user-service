@@ -338,7 +338,51 @@ export class OnboardService {
       throw new BadRequestException("services must contain at least one service");
     }
 
-    vendor.services = [...(vendor.services ?? []), ...servicesToAdd];
+    const existingServices = vendor.services ?? [];
+
+    const hasSameService = (
+      a: {
+        serviceName: string;
+        serviceDuration: number;
+        serviceCost: number;
+        gender: string;
+      },
+      b: {
+        serviceName: string;
+        serviceDuration: number;
+        serviceCost: number;
+        gender: string;
+      },
+    ) =>
+      a.serviceName === b.serviceName &&
+      a.serviceDuration === b.serviceDuration &&
+      a.serviceCost === b.serviceCost &&
+      a.gender === b.gender;
+
+    // Reject if any incoming service exactly matches an existing one
+    for (const incoming of servicesToAdd) {
+      const duplicateExisting = existingServices.some((svc) =>
+        hasSameService(svc, incoming),
+      );
+      if (duplicateExisting) {
+        throw new BadRequestException(
+          `Service already exists with same details: ${incoming.serviceName}`,
+        );
+      }
+    }
+
+    // Reject duplicates within the same payload
+    for (let i = 0; i < servicesToAdd.length; i++) {
+      for (let j = i + 1; j < servicesToAdd.length; j++) {
+        if (hasSameService(servicesToAdd[i], servicesToAdd[j])) {
+          throw new BadRequestException(
+            `Duplicate services in request: ${servicesToAdd[i].serviceName}`,
+          );
+        }
+      }
+    }
+
+    vendor.services = [...existingServices, ...servicesToAdd];
     const saved = await vendor.save();
 
     return this.sanitizeVendor(saved);
