@@ -57,6 +57,10 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   R2_REGION?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  R2_PUBLIC_BASE!: string;
 }
 
 export const validateEnv = (config: Record<string, unknown>) => {

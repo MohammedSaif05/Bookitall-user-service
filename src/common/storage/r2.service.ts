@@ -16,6 +16,7 @@ export class R2Service {
   private readonly bucket: string;
   private readonly client: S3Client;
   private readonly endpoint: string;
+  private readonly publicBase: string;
 
   constructor(private readonly configService: ConfigService) {
     const endpoint = this.configService.get<string>("r2.endpoint");
@@ -24,6 +25,7 @@ export class R2Service {
     const secretAccessKey =
       this.configService.get<string>("r2.secretAccessKey");
     const region = this.configService.get<string>("r2.region", "auto");
+    const publicBase = this.configService.get<string>("r2.publicBase");
 
     if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) {
       throw new Error(
@@ -31,8 +33,15 @@ export class R2Service {
       );
     }
 
+    if (!publicBase) {
+      throw new Error(
+        "R2_PUBLIC_BASE is required. Please set R2_PUBLIC_BASE environment variable.",
+      );
+    }
+
     this.bucket = bucket;
     this.endpoint = endpoint.replace(/\/$/, "");
+    this.publicBase = publicBase.replace(/\/$/, "");
     this.client = new S3Client({
       region,
       endpoint,
@@ -90,13 +99,18 @@ export class R2Service {
   }
 
   getPublicUrl(key: string): string {
-    return `${this.endpoint}/${this.bucket}/${key}`;
+    return `${this.publicBase}/${key}`;
   }
 
   getKeyFromUrl(url: string): string | undefined {
-    const prefix = `${this.endpoint}/${this.bucket}/`;
+    const prefix = `${this.publicBase}/`;
     if (url.startsWith(prefix)) {
       return url.slice(prefix.length);
+    }
+    // Fallback for old URL format (endpoint/bucket/key)
+    const oldPrefix = `${this.endpoint}/${this.bucket}/`;
+    if (url.startsWith(oldPrefix)) {
+      return url.slice(oldPrefix.length);
     }
     return undefined;
   }
