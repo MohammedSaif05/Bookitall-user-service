@@ -489,6 +489,7 @@ export class OnboardService {
           businessCategory: 1,
           city: 1,
           mobileNo: 1,
+          shopId: 1,
         },
       )
       .lean()
@@ -501,6 +502,7 @@ export class OnboardService {
       businessCategory: vendor.businessCategory,
       location: vendor.city,
       mobileNumber: vendor.mobileNo,
+      shopId: vendor.shopId,
     }));
   }
 
