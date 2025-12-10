@@ -5,4 +5,3 @@ export class UpdateCustomerDetailsDto {
   @IsNotEmpty()
   customerName!: string;
 }
-

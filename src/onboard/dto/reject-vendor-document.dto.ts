@@ -9,4 +9,3 @@ export class RejectVendorDocumentDto {
   @IsNotEmpty()
   message!: string;
 }
-

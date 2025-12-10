@@ -5,4 +5,3 @@ export class UpdateVendorImagesDto {
   @IsNotEmpty()
   userId!: string;
 }
-

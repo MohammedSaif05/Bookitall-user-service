@@ -5,4 +5,3 @@ export class UpdateVendorDocumentDto {
   @IsNotEmpty()
   userId!: string;
 }
-

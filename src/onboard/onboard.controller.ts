@@ -44,7 +44,9 @@ export class OnboardController {
   }
 
   @Patch(":userId/business-document")
-  @UseInterceptors(FileFieldsInterceptor([{ name: "businessDocument", maxCount: 1 }]))
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: "businessDocument", maxCount: 1 }]),
+  )
   async updateVendorDocument(
     @Param("userId") userId: string,
     @UploadedFiles()

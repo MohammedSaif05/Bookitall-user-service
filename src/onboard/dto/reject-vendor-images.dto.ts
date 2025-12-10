@@ -9,4 +9,3 @@ export class RejectVendorImagesDto {
   @IsNotEmpty()
   message!: string;
 }
-

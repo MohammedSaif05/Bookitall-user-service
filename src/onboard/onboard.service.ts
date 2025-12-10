@@ -172,7 +172,9 @@ export class OnboardService {
     const images = files.businessImages ?? [];
 
     if (!Array.isArray(images) || images.length !== 2) {
-      throw new BadRequestException("businessImages must contain exactly 2 files");
+      throw new BadRequestException(
+        "businessImages must contain exactly 2 files",
+      );
     }
 
     const newKeys: string[] = [];
@@ -207,7 +209,9 @@ export class OnboardService {
     } catch (error) {
       // Rollback newly uploaded images
       await Promise.all(
-        newKeys.map((key) => this.r2Service.deleteObject(key).catch(() => undefined)),
+        newKeys.map((key) =>
+          this.r2Service.deleteObject(key).catch(() => undefined),
+        ),
       );
 
       throw new BadRequestException(
@@ -236,7 +240,9 @@ export class OnboardService {
     const docs = files.businessDocument ?? [];
 
     if (!Array.isArray(docs) || docs.length !== 1) {
-      throw new BadRequestException("businessDocument must contain exactly 1 file");
+      throw new BadRequestException(
+        "businessDocument must contain exactly 1 file",
+      );
     }
 
     const file = docs[0];
@@ -336,7 +342,9 @@ export class OnboardService {
 
     const servicesToAdd = addVendorServiceDto.services ?? [];
     if (!Array.isArray(servicesToAdd) || servicesToAdd.length === 0) {
-      throw new BadRequestException("services must contain at least one service");
+      throw new BadRequestException(
+        "services must contain at least one service",
+      );
     }
 
     const existingServices = vendor.services ?? [];
@@ -524,6 +532,7 @@ export class OnboardService {
 
     result.breaks = this.sanitizeBreaks(result.breaks);
     result.days = this.sanitizeDays(result.days);
+    result.services = this.sanitizeServices(result.services);
 
     return result;
   }
@@ -553,6 +562,19 @@ export class OnboardService {
       const sanitizedDay: Record<string, unknown> = { ...dayRest };
       sanitizedDay.breaks = this.sanitizeBreaks(breaks);
       return sanitizedDay;
+    });
+  }
+
+  private sanitizeServices(services: unknown): unknown {
+    if (!Array.isArray(services)) {
+      return services;
+    }
+
+    return services.map((serviceItem: unknown) => {
+      const serviceObj = serviceItem as Record<string, unknown>;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, ...rest } = serviceObj;
+      return rest;
     });
   }
 

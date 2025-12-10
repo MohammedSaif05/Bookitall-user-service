@@ -21,7 +21,8 @@ export class R2Service {
     const endpoint = this.configService.get<string>("r2.endpoint");
     const bucket = this.configService.get<string>("r2.bucket");
     const accessKeyId = this.configService.get<string>("r2.accessKeyId");
-    const secretAccessKey = this.configService.get<string>("r2.secretAccessKey");
+    const secretAccessKey =
+      this.configService.get<string>("r2.secretAccessKey");
     const region = this.configService.get<string>("r2.region", "auto");
 
     if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) {
@@ -100,4 +101,3 @@ export class R2Service {
     return undefined;
   }
 }
-

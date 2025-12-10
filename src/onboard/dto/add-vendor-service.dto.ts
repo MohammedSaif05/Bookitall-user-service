@@ -41,4 +41,3 @@ export class AddVendorServiceDto {
   @Type(() => VendorServiceItemDto)
   services!: VendorServiceItemDto[];
 }
-

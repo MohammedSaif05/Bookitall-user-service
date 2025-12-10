@@ -14,4 +14,3 @@ export class CustomerController {
     return this.authService.updateCustomerDetails(userId, payload.customerName);
   }
 }
-
