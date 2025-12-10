@@ -12,6 +12,7 @@ import {
   VendorDocument,
 } from "../modules/auth/schemas/vendor.schema.js";
 import { UpdateVendorDto } from "./dto/update-vendor.dto.js";
+import { UpdateVendorDocumentDto } from "./dto/update-vendor-document.dto.js";
 import { UpdateVendorImagesDto } from "./dto/update-vendor-images.dto.js";
 
 @Injectable()
@@ -207,6 +208,62 @@ export class OnboardService {
 
       throw new BadRequestException(
         `Failed to upload business images: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  async updateVendorDocument(
+    userId: string,
+    updateVendorDocumentDto: UpdateVendorDocumentDto,
+    files: { businessDocument?: Array<{ buffer: Buffer; mimetype: string }> },
+  ) {
+    if (updateVendorDocumentDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const docs = files.businessDocument ?? [];
+
+    if (!Array.isArray(docs) || docs.length !== 1) {
+      throw new BadRequestException("businessDocument must contain exactly 1 file");
+    }
+
+    const file = docs[0];
+    if (!file.buffer || !file.mimetype) {
+      throw new BadRequestException("Invalid file upload");
+    }
+
+    const newKey = `vendors/${userId}/business-document-${randomUUID()}`;
+
+    try {
+      await this.r2Service.uploadObject(newKey, file.buffer, file.mimetype);
+      const newUrl = this.r2Service.getPublicUrl(newKey);
+
+      // Delete previous document if it existed
+      if (vendor.businessDocument) {
+        const prevKey = this.r2Service.getKeyFromUrl(vendor.businessDocument);
+        if (prevKey) {
+          await this.r2Service.deleteObject(prevKey).catch(() => undefined);
+        }
+      }
+
+      vendor.businessDocument = newUrl;
+      const saved = await vendor.save();
+
+      return this.sanitizeVendor(saved);
+    } catch (error) {
+      // Rollback newly uploaded doc on failure
+      await this.r2Service.deleteObject(newKey).catch(() => undefined);
+
+      throw new BadRequestException(
+        `Failed to upload business document: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
   }

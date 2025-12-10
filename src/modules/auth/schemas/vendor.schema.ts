@@ -109,6 +109,9 @@ export class Vendor {
 
   @Prop({ type: [String] })
   businessImages?: string[];
+
+  @Prop({ type: String })
+  businessDocument?: string;
 }
 
 export type VendorDocument = Vendor & Document;
