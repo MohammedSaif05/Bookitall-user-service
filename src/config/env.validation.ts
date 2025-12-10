@@ -37,6 +37,26 @@ class EnvironmentVariables {
   @IsString()
   @IsNotEmpty()
   MONGODB_URI!: string;
+
+  @IsString()
+  @IsOptional()
+  R2_ENDPOINT?: string;
+
+  @IsString()
+  @IsOptional()
+  R2_BUCKET?: string;
+
+  @IsString()
+  @IsOptional()
+  R2_ACCESS_KEY_ID?: string;
+
+  @IsString()
+  @IsOptional()
+  R2_SECRET_ACCESS_KEY?: string;
+
+  @IsString()
+  @IsOptional()
+  R2_REGION?: string;
 }
 
 export const validateEnv = (config: Record<string, unknown>) => {

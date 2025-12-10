@@ -4,18 +4,22 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
+import { randomUUID } from "node:crypto";
 import { Model } from "mongoose";
+import { R2Service } from "../common/storage/r2.service.js";
 import {
   Vendor,
   VendorDocument,
 } from "../modules/auth/schemas/vendor.schema.js";
 import { UpdateVendorDto } from "./dto/update-vendor.dto.js";
+import { UpdateVendorImagesDto } from "./dto/update-vendor-images.dto.js";
 
 @Injectable()
 export class OnboardService {
   constructor(
     @InjectModel(Vendor.name)
     private readonly vendorModel: Model<VendorDocument>,
+    private readonly r2Service: R2Service,
   ) {}
 
   async updateVendor(userId: string, updateVendorDto: UpdateVendorDto) {
@@ -141,6 +145,67 @@ export class OnboardService {
       .exec();
 
     return vendors.map((vendor) => this.sanitizeVendor(vendor));
+  }
+
+  async updateVendorImages(
+    userId: string,
+    updateVendorImagesDto: UpdateVendorImagesDto,
+  ) {
+    if (updateVendorImagesDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    if (
+      !Array.isArray(updateVendorImagesDto.businessImages) ||
+      updateVendorImagesDto.businessImages.length !== 2
+    ) {
+      throw new BadRequestException("businessImages must contain exactly 2 items");
+    }
+
+    const newKeys: string[] = [];
+    const newUrls: string[] = [];
+
+    try {
+      for (const [index, image] of updateVendorImagesDto.businessImages.entries()) {
+        const { buffer, contentType } = this.decodeBase64Image(image);
+        const key = `vendors/${userId}/business-${randomUUID()}-${index}`;
+        await this.r2Service.uploadObject(key, buffer, contentType);
+        newKeys.push(key);
+        newUrls.push(this.r2Service.getPublicUrl(key));
+      }
+
+      // Delete previous images if they existed
+      if (Array.isArray(vendor.businessImages)) {
+        for (const url of vendor.businessImages) {
+          const key = this.r2Service.getKeyFromUrl(url);
+          if (key) {
+            await this.r2Service.deleteObject(key).catch(() => undefined);
+          }
+        }
+      }
+
+      vendor.businessImages = newUrls;
+      const saved = await vendor.save();
+
+      return this.sanitizeVendor(saved);
+    } catch (error) {
+      // Rollback newly uploaded images
+      await Promise.all(
+        newKeys.map((key) => this.r2Service.deleteObject(key).catch(() => undefined)),
+      );
+
+      throw new BadRequestException(
+        `Failed to upload business images: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
   }
 
   async getPendingVendorsList() {
@@ -293,5 +358,29 @@ export class OnboardService {
 
   private escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  private decodeBase64Image(image: string): { buffer: Buffer; contentType: string } {
+    if (!image || typeof image !== "string") {
+      throw new BadRequestException("Each business image must be a base64 string");
+    }
+
+    let base64Data = image;
+    let contentType = "application/octet-stream";
+
+    const dataUriMatch = image.match(/^data:(.+);base64,(.*)$/);
+    if (dataUriMatch) {
+      contentType = dataUriMatch[1];
+      base64Data = dataUriMatch[2];
+    }
+
+    try {
+      const buffer = Buffer.from(base64Data, "base64");
+      return { buffer, contentType };
+    } catch (error) {
+      throw new BadRequestException(
+        `Invalid base64 image data: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
   }
 }

@@ -106,6 +106,9 @@ export class Vendor {
 
   @Prop({ type: Boolean, default: false })
   isBusinessVerified?: boolean;
+
+  @Prop({ type: [String] })
+  businessImages?: string[];
 }
 
 export type VendorDocument = Vendor & Document;

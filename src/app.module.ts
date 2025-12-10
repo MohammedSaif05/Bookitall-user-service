@@ -8,6 +8,7 @@ import { AppService } from "./app.service";
 import { HealthModule } from "./modules/health/health.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { OnboardModule } from "./onboard/onboard.module";
+import { StorageModule } from "./common/storage/storage.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { OnboardModule } from "./onboard/onboard.module";
     HealthModule,
     AuthModule,
     OnboardModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

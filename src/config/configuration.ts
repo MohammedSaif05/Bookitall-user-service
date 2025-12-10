@@ -8,4 +8,11 @@ export default () => ({
   database: {
     uri: process.env.MONGODB_URI ?? "",
   },
+  r2: {
+    endpoint: process.env.R2_ENDPOINT,
+    bucket: process.env.R2_BUCKET,
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    region: process.env.R2_REGION ?? "auto",
+  },
 });
