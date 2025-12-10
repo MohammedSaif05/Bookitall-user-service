@@ -408,6 +408,8 @@ export class OnboardService {
     vendor.isBusinessVerified = true;
     vendor.isBusinessImageApproved = true;
     vendor.isBusinessDocumentApproved = true;
+    vendor.imageRejectMessage = undefined;
+    vendor.documentRejectMessage = undefined;
 
     const saved = await vendor.save();
     return this.sanitizeVendor(saved);
