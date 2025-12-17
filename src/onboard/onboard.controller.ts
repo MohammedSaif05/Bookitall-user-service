@@ -9,6 +9,7 @@ import {
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { OnboardService } from "./onboard.service.js";
 import { AddVendorServiceDto } from "./dto/add-vendor-service.dto.js";
+import { AddVendorStaffDto } from "./dto/add-vendor-staff.dto.js";
 import { ApproveVendorProductionDto } from "./dto/approve-vendor-production.dto.js";
 import { UpdateVendorDto } from "./dto/update-vendor.dto.js";
 import { UpdateVendorDocumentDto } from "./dto/update-vendor-document.dto.js";
@@ -80,6 +81,14 @@ export class OnboardController {
     @Body() payload: AddVendorServiceDto,
   ) {
     return this.onboardService.addVendorService(userId, payload);
+  }
+
+  @Patch(":userId/add-staff")
+  async addVendorStaff(
+    @Param("userId") userId: string,
+    @Body() payload: AddVendorStaffDto,
+  ) {
+    return this.onboardService.addVendorStaff(userId, payload);
   }
 
   @Patch(":userId/approve-vendor-production")

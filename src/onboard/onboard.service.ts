@@ -12,6 +12,7 @@ import {
   VendorDocument,
 } from "../modules/auth/schemas/vendor.schema.js";
 import { AddVendorServiceDto } from "./dto/add-vendor-service.dto.js";
+import { AddVendorStaffDto } from "./dto/add-vendor-staff.dto.js";
 import { ApproveVendorProductionDto } from "./dto/approve-vendor-production.dto.js";
 import { UpdateVendorDto } from "./dto/update-vendor.dto.js";
 import { UpdateVendorDocumentDto } from "./dto/update-vendor-document.dto.js";
@@ -321,6 +322,68 @@ export class OnboardService {
     vendor.documentRejectMessage = rejectVendorDocumentDto.message;
 
     const saved = await vendor.save();
+    return this.sanitizeVendor(saved);
+  }
+
+  async addVendorStaff(
+    userId: string,
+    addVendorStaffDto: AddVendorStaffDto,
+  ) {
+    if (addVendorStaffDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const staffNames = addVendorStaffDto.staff ?? [];
+    if (!Array.isArray(staffNames) || staffNames.length === 0) {
+      throw new BadRequestException("staff must contain at least one name");
+    }
+
+    const normalizedIncoming = staffNames.map((name, index) => {
+      if (typeof name !== "string") {
+        throw new BadRequestException(
+          `staff item at index ${index} must be a string`,
+        );
+      }
+      const trimmed = name.trim();
+      if (!trimmed) {
+        throw new BadRequestException(
+          `staff item at index ${index} cannot be empty`,
+        );
+      }
+      return trimmed;
+    });
+
+    const incomingLower = normalizedIncoming.map((name) => name.toLowerCase());
+    const uniqueIncoming = new Set(incomingLower);
+    if (uniqueIncoming.size !== incomingLower.length) {
+      throw new BadRequestException("Duplicate staff names in request payload");
+    }
+
+    const existingStaff = vendor.staff ?? [];
+    const existingLookup = new Set(
+      existingStaff.map((name) => name.toLowerCase()),
+    );
+
+    const duplicateExisting = normalizedIncoming.find((name) =>
+      existingLookup.has(name.toLowerCase()),
+    );
+    if (duplicateExisting) {
+      throw new BadRequestException(
+        `Staff name already exists: ${duplicateExisting}`,
+      );
+    }
+
+    vendor.staff = [...existingStaff, ...normalizedIncoming];
+    const saved = await vendor.save();
+
     return this.sanitizeVendor(saved);
   }
 

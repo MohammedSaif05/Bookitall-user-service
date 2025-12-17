@@ -128,6 +128,9 @@ export class Vendor {
   @Prop({ type: String, unique: true, sparse: true })
   shopId?: string;
 
+  @Prop({ type: [String], default: [] })
+  staff?: string[];
+
   @Prop({
     type: [
       {
