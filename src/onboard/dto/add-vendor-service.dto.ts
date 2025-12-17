@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   Min,
   ValidateNested,
@@ -28,6 +29,19 @@ export class VendorServiceItemDto {
 
   @IsEnum(GENDERS)
   gender!: Gender;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsOptional()
+  category?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  bufferTime?: number;
 }
 
 export class AddVendorServiceDto {

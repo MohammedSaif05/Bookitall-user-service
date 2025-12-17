@@ -141,6 +141,9 @@ export class Vendor {
           type: String,
           enum: ["male", "female", "both"],
         },
+        description: String,
+        category: String,
+        bufferTime: Number,
       },
     ],
   })
@@ -149,6 +152,9 @@ export class Vendor {
     serviceDuration: number;
     serviceCost: number;
     gender: "male" | "female" | "both";
+    description?: string;
+    category?: string;
+    bufferTime?: number;
   }>;
 }
 
