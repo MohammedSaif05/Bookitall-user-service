@@ -329,12 +329,6 @@ export class OnboardService {
     userId: string,
     addVendorStaffDto: AddVendorStaffDto,
   ) {
-    if (addVendorStaffDto.userId !== userId) {
-      throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
-      );
-    }
-
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
