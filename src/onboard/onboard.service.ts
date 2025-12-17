@@ -972,6 +972,7 @@ export class OnboardService {
     result.breaks = this.sanitizeBreaks(result.breaks);
     result.days = this.sanitizeDays(result.days);
     result.services = this.sanitizeServices(result.services);
+    result.staff = this.sanitizeStaff(result.staff);
 
     return result;
   }
@@ -1013,6 +1014,26 @@ export class OnboardService {
       const serviceObj = serviceItem as Record<string, unknown>;
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _id, ...rest } = serviceObj;
+      return rest;
+    });
+  }
+
+  private sanitizeStaff(staff: unknown): unknown {
+    if (!Array.isArray(staff)) {
+      return staff;
+    }
+
+    return staff.map((staffItem: unknown) => {
+      const staffObj = staffItem as Record<string, unknown>;
+      // Handle both string and object formats (backward compatibility)
+      if (typeof staffObj === "string") {
+        return {
+          name: staffObj,
+          isActive: true,
+        };
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, ...rest } = staffObj;
       return rest;
     });
   }
