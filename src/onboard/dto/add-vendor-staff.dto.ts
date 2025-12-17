@@ -1,10 +1,26 @@
-import { ArrayMinSize, IsArray, IsNotEmpty, IsString } from "class-validator";
+import {
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsNotEmpty,
+  IsString,
+  ValidateNested,
+} from "class-validator";
+import { Type } from "class-transformer";
+
+export class VendorStaffItemDto {
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @IsBoolean()
+  isActive!: boolean;
+}
 
 export class AddVendorStaffDto {
   @IsArray()
   @ArrayMinSize(1)
-  @IsString({ each: true })
-  @IsNotEmpty({ each: true })
-  staff!: string[];
+  @ValidateNested({ each: true })
+  @Type(() => VendorStaffItemDto)
+  staff!: VendorStaffItemDto[];
 }
-

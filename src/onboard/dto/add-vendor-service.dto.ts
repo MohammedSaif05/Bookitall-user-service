@@ -1,5 +1,4 @@
 import {
-  ArrayMinSize,
   IsArray,
   IsEnum,
   IsNotEmpty,
@@ -42,6 +41,17 @@ export class VendorServiceItemDto {
   @Min(0)
   @IsOptional()
   bufferTime?: number;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @IsOptional()
+  assignedStaff?: string[];
+
+  @IsNumber()
+  @Min(1)
+  @IsOptional()
+  maximumNo?: number;
 }
 
 export class AddVendorServiceDto {
@@ -49,9 +59,7 @@ export class AddVendorServiceDto {
   @IsNotEmpty()
   userId!: string;
 
-  @IsArray()
-  @ArrayMinSize(1)
-  @ValidateNested({ each: true })
+  @ValidateNested()
   @Type(() => VendorServiceItemDto)
-  services!: VendorServiceItemDto[];
+  service!: VendorServiceItemDto;
 }

@@ -128,12 +128,21 @@ export class Vendor {
   @Prop({ type: String, unique: true, sparse: true })
   shopId?: string;
 
-  @Prop({ type: [String], default: [] })
-  staff?: string[];
+  @Prop({
+    type: [
+      {
+        name: { type: String, required: true },
+        isActive: { type: Boolean, default: true },
+      },
+    ],
+    default: [],
+  })
+  staff?: Array<{ name: string; isActive: boolean }>;
 
   @Prop({
     type: [
       {
+        serviceId: { type: String, required: true, unique: false },
         serviceName: String,
         serviceDuration: Number,
         serviceCost: Number,
@@ -144,10 +153,14 @@ export class Vendor {
         description: String,
         category: String,
         bufferTime: Number,
+        assignedStaff: [String],
+        maximumNo: Number,
+        serviceImage: String,
       },
     ],
   })
   services?: Array<{
+    serviceId: string;
     serviceName: string;
     serviceDuration: number;
     serviceCost: number;
@@ -155,6 +168,9 @@ export class Vendor {
     description?: string;
     category?: string;
     bufferTime?: number;
+    assignedStaff?: string[];
+    maximumNo?: number;
+    serviceImage?: string;
   }>;
 }
 

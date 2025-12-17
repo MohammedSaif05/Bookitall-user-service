@@ -11,8 +11,14 @@ import {
   Vendor,
   VendorDocument,
 } from "../modules/auth/schemas/vendor.schema.js";
-import { AddVendorServiceDto } from "./dto/add-vendor-service.dto.js";
+import {
+  AddVendorServiceDto,
+  VendorServiceItemDto,
+} from "./dto/add-vendor-service.dto.js";
+import { UpdateVendorServiceDto } from "./dto/update-vendor-service.dto.js";
 import { AddVendorStaffDto } from "./dto/add-vendor-staff.dto.js";
+import { UpdateVendorStaffDto } from "./dto/update-vendor-staff.dto.js";
+import { DeleteVendorStaffDto } from "./dto/delete-vendor-staff.dto.js";
 import { ApproveVendorProductionDto } from "./dto/approve-vendor-production.dto.js";
 import { UpdateVendorDto } from "./dto/update-vendor.dto.js";
 import { UpdateVendorDocumentDto } from "./dto/update-vendor-document.dto.js";
@@ -325,37 +331,47 @@ export class OnboardService {
     return this.sanitizeVendor(saved);
   }
 
-  async addVendorStaff(
-    userId: string,
-    addVendorStaffDto: AddVendorStaffDto,
-  ) {
+  async addVendorStaff(userId: string, addVendorStaffDto: AddVendorStaffDto) {
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
       throw new NotFoundException(`Vendor with userId ${userId} not found`);
     }
 
-    const staffNames = addVendorStaffDto.staff ?? [];
-    if (!Array.isArray(staffNames) || staffNames.length === 0) {
-      throw new BadRequestException("staff must contain at least one name");
+    const staffItems = addVendorStaffDto.staff ?? [];
+    if (!Array.isArray(staffItems) || staffItems.length === 0) {
+      throw new BadRequestException("staff must contain at least one item");
     }
 
-    const normalizedIncoming = staffNames.map((name, index) => {
-      if (typeof name !== "string") {
+    const normalizedIncoming = staffItems.map((item, index) => {
+      if (!item || typeof item !== "object") {
         throw new BadRequestException(
-          `staff item at index ${index} must be a string`,
+          `staff item at index ${index} must be an object`,
         );
       }
-      const trimmed = name.trim();
-      if (!trimmed) {
+      if (!item.name || typeof item.name !== "string") {
         throw new BadRequestException(
-          `staff item at index ${index} cannot be empty`,
+          `staff item at index ${index} must have a name (string)`,
         );
       }
-      return trimmed;
+      const trimmedName = item.name.trim();
+      if (!trimmedName) {
+        throw new BadRequestException(
+          `staff item at index ${index} name cannot be empty`,
+        );
+      }
+      const isActive =
+        item.isActive !== undefined ? Boolean(item.isActive) : true;
+
+      return {
+        name: trimmedName,
+        isActive,
+      };
     });
 
-    const incomingLower = normalizedIncoming.map((name) => name.toLowerCase());
+    const incomingLower = normalizedIncoming.map((item) =>
+      item.name.toLowerCase(),
+    );
     const uniqueIncoming = new Set(incomingLower);
     if (uniqueIncoming.size !== incomingLower.length) {
       throw new BadRequestException("Duplicate staff names in request payload");
@@ -363,15 +379,20 @@ export class OnboardService {
 
     const existingStaff = vendor.staff ?? [];
     const existingLookup = new Set(
-      existingStaff.map((name) => name.toLowerCase()),
+      existingStaff.map((staff) => {
+        // Handle backward compatibility: staff might be string or object
+        const staffName =
+          typeof staff === "string" ? staff : (staff as { name: string }).name;
+        return staffName.toLowerCase();
+      }),
     );
 
-    const duplicateExisting = normalizedIncoming.find((name) =>
-      existingLookup.has(name.toLowerCase()),
+    const duplicateExisting = normalizedIncoming.find((item) =>
+      existingLookup.has(item.name.toLowerCase()),
     );
     if (duplicateExisting) {
       throw new BadRequestException(
-        `Staff name already exists: ${duplicateExisting}`,
+        `Staff name already exists: ${duplicateExisting.name}`,
       );
     }
 
@@ -381,9 +402,151 @@ export class OnboardService {
     return this.sanitizeVendor(saved);
   }
 
+  async updateVendorStaff(
+    userId: string,
+    updateVendorStaffDto: UpdateVendorStaffDto,
+  ) {
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const existingStaff = vendor.staff ?? [];
+    const currentName = updateVendorStaffDto.currentName.trim();
+
+    // Find the staff member to update
+    const staffIndex = existingStaff.findIndex((staff) => {
+      const staffName =
+        typeof staff === "string" ? staff : (staff as { name: string }).name;
+      return staffName.toLowerCase() === currentName.toLowerCase();
+    });
+
+    if (staffIndex === -1) {
+      throw new NotFoundException(
+        `Staff member with name "${updateVendorStaffDto.currentName}" not found`,
+      );
+    }
+
+    const currentStaff = existingStaff[staffIndex];
+    const currentStaffObj =
+      typeof currentStaff === "string"
+        ? { name: currentStaff, isActive: true }
+        : (currentStaff as { name: string; isActive: boolean });
+
+    // If newName is provided, validate it and check for duplicates
+    let newName = currentStaffObj.name;
+    if (updateVendorStaffDto.newName !== undefined) {
+      const trimmedNewName = updateVendorStaffDto.newName.trim();
+      if (!trimmedNewName) {
+        throw new BadRequestException("newName cannot be empty");
+      }
+
+      // Check if new name already exists (excluding current staff)
+      const existingLookup = new Set(
+        existingStaff
+          .filter((_, index) => index !== staffIndex)
+          .map((staff) => {
+            const staffName =
+              typeof staff === "string"
+                ? staff
+                : (staff as { name: string }).name;
+            return staffName.toLowerCase();
+          }),
+      );
+
+      if (existingLookup.has(trimmedNewName.toLowerCase())) {
+        throw new BadRequestException(
+          `Staff name already exists: ${trimmedNewName}`,
+        );
+      }
+
+      newName = trimmedNewName;
+    }
+
+    // Update the staff member
+    const updatedStaff: { name: string; isActive: boolean } = {
+      name: newName,
+      isActive:
+        updateVendorStaffDto.isActive !== undefined
+          ? Boolean(updateVendorStaffDto.isActive)
+          : currentStaffObj.isActive,
+    };
+
+    existingStaff[staffIndex] = updatedStaff;
+    vendor.staff = existingStaff;
+
+    const saved = await vendor.save();
+    return this.sanitizeVendor(saved);
+  }
+
+  async getVendorStaff(userId: string) {
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const staff = vendor.staff ?? [];
+
+    // Normalize staff to always return objects with name and isActive
+    // Handle backward compatibility for existing string entries
+    const normalizedStaff = staff.map((staffMember) => {
+      if (typeof staffMember === "string") {
+        return {
+          name: staffMember,
+          isActive: true,
+        };
+      }
+      return {
+        name: staffMember.name,
+        isActive: staffMember.isActive,
+      };
+    });
+
+    return normalizedStaff;
+  }
+
+  async deleteVendorStaff(
+    userId: string,
+    deleteVendorStaffDto: DeleteVendorStaffDto,
+  ) {
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const existingStaff = vendor.staff ?? [];
+    const nameToDelete = deleteVendorStaffDto.name.trim();
+
+    // Find the staff member to delete
+    const staffIndex = existingStaff.findIndex((staff) => {
+      const staffName =
+        typeof staff === "string" ? staff : (staff as { name: string }).name;
+      return staffName.toLowerCase() === nameToDelete.toLowerCase();
+    });
+
+    if (staffIndex === -1) {
+      throw new NotFoundException(
+        `Staff member with name "${deleteVendorStaffDto.name}" not found`,
+      );
+    }
+
+    // Remove the staff member from the array
+    existingStaff.splice(staffIndex, 1);
+    vendor.staff = existingStaff;
+
+    const saved = await vendor.save();
+    return this.sanitizeVendor(saved);
+  }
+
   async addVendorService(
     userId: string,
     addVendorServiceDto: AddVendorServiceDto,
+    files?: {
+      serviceImage?: Array<{ buffer: Buffer; mimetype: string }>;
+    },
   ) {
     if (addVendorServiceDto.userId !== userId) {
       throw new BadRequestException(
@@ -397,61 +560,266 @@ export class OnboardService {
       throw new NotFoundException(`Vendor with userId ${userId} not found`);
     }
 
-    const servicesToAdd = addVendorServiceDto.services ?? [];
-    if (!Array.isArray(servicesToAdd) || servicesToAdd.length === 0) {
-      throw new BadRequestException(
-        "services must contain at least one service",
-      );
+    if (!addVendorServiceDto.service) {
+      throw new BadRequestException("service is required");
     }
+
+    const service: VendorServiceItemDto = addVendorServiceDto.service;
 
     const existingServices = vendor.services ?? [];
+    const existingStaff = vendor.staff ?? [];
 
-    const hasSameService = (
-      a: {
-        serviceName: string;
-        serviceDuration: number;
-        serviceCost: number;
-        gender: string;
-      },
-      b: {
-        serviceName: string;
-        serviceDuration: number;
-        serviceCost: number;
-        gender: string;
-      },
-    ) =>
-      a.serviceName === b.serviceName &&
-      a.serviceDuration === b.serviceDuration &&
-      a.serviceCost === b.serviceCost &&
-      a.gender === b.gender;
+    // Create a lookup set of existing staff names (case-insensitive)
+    const existingStaffNames = new Set(
+      existingStaff.map((staff) => {
+        const staffName =
+          typeof staff === "string" ? staff : (staff as { name: string }).name;
+        return staffName.toLowerCase();
+      }),
+    );
 
-    // Reject if any incoming service exactly matches an existing one
-    for (const incoming of servicesToAdd) {
-      const duplicateExisting = existingServices.some((svc) =>
-        hasSameService(svc, incoming),
-      );
-      if (duplicateExisting) {
-        throw new BadRequestException(
-          `Service already exists with same details: ${incoming.serviceName}`,
-        );
-      }
-    }
-
-    // Reject duplicates within the same payload
-    for (let i = 0; i < servicesToAdd.length; i++) {
-      for (let j = i + 1; j < servicesToAdd.length; j++) {
-        if (hasSameService(servicesToAdd[i], servicesToAdd[j])) {
+    // Validate assignedStaff if provided
+    if (service.assignedStaff && Array.isArray(service.assignedStaff)) {
+      for (const staffName of service.assignedStaff) {
+        if (typeof staffName !== "string") {
           throw new BadRequestException(
-            `Duplicate services in request: ${servicesToAdd[i].serviceName}`,
+            "assignedStaff must contain only strings",
+          );
+        }
+        const trimmedStaffName = staffName.trim();
+        if (!trimmedStaffName) {
+          throw new BadRequestException(
+            "assignedStaff cannot contain empty strings",
+          );
+        }
+        if (!existingStaffNames.has(trimmedStaffName.toLowerCase())) {
+          throw new BadRequestException(
+            `Staff member "${staffName}" not found in vendor's staff list`,
           );
         }
       }
     }
 
-    vendor.services = [...existingServices, ...servicesToAdd];
-    const saved = await vendor.save();
+    const serviceImageFile = files?.serviceImage?.[0];
+    let newKey: string | undefined = undefined;
+    let uploadedImageUrl: string | undefined = undefined;
 
-    return this.sanitizeVendor(saved);
+    // Upload service image if provided
+    try {
+      if (serviceImageFile?.buffer && serviceImageFile?.mimetype) {
+        newKey = `vendors/${userId}/service-${randomUUID()}`;
+        await this.r2Service.uploadObject(
+          newKey,
+          serviceImageFile.buffer,
+          serviceImageFile.mimetype,
+        );
+        uploadedImageUrl = this.r2Service.getPublicUrl(newKey);
+      }
+
+      // Generate serviceId and add service with image
+      const serviceId = await this.generateUniqueServiceId(userId);
+      const newService: {
+        serviceId: string;
+        serviceName: string;
+        serviceDuration: number;
+        serviceCost: number;
+        gender: "male" | "female" | "both";
+        description?: string;
+        category?: string;
+        bufferTime?: number;
+        assignedStaff?: string[];
+        maximumNo?: number;
+        serviceImage?: string;
+      } = {
+        ...service,
+        serviceId,
+        serviceImage: uploadedImageUrl,
+      };
+
+      existingServices.push(newService);
+      vendor.services = existingServices;
+      const saved = await vendor.save();
+
+      return this.sanitizeVendor(saved);
+    } catch (error) {
+      // Rollback newly uploaded image on error
+      if (newKey) {
+        await this.r2Service.deleteObject(newKey).catch(() => undefined);
+      }
+
+      throw new BadRequestException(
+        `Failed to add service: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  async updateVendorService(
+    userId: string,
+    updateVendorServiceDto: UpdateVendorServiceDto,
+    files?: {
+      serviceImage?: Array<{ buffer: Buffer; mimetype: string }>;
+    },
+  ) {
+    if (updateVendorServiceDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const existingServices = vendor.services ?? [];
+    const serviceId = updateVendorServiceDto.serviceId;
+
+    // Find the service by serviceId
+    const serviceIndex = existingServices.findIndex(
+      (svc) => (svc as { serviceId?: string }).serviceId === serviceId,
+    );
+
+    if (serviceIndex === -1) {
+      throw new NotFoundException(
+        `Service with serviceId "${serviceId}" not found`,
+      );
+    }
+
+    const existingService = existingServices[serviceIndex] as {
+      serviceId: string;
+      serviceName: string;
+      serviceDuration: number;
+      serviceCost: number;
+      gender: "male" | "female" | "both";
+      description?: string;
+      category?: string;
+      bufferTime?: number;
+      assignedStaff?: string[];
+      maximumNo?: number;
+      serviceImage?: string;
+    };
+
+    // Validate assignedStaff if provided
+    if (updateVendorServiceDto.assignedStaff) {
+      const existingStaff = vendor.staff ?? [];
+      const existingStaffNames = new Set(
+        existingStaff.map((staff) => {
+          const staffName =
+            typeof staff === "string"
+              ? staff
+              : (staff as { name: string }).name;
+          return staffName.toLowerCase();
+        }),
+      );
+
+      for (const staffName of updateVendorServiceDto.assignedStaff) {
+        if (typeof staffName !== "string") {
+          throw new BadRequestException(
+            "assignedStaff must contain only strings",
+          );
+        }
+        const trimmedStaffName = staffName.trim();
+        if (!trimmedStaffName) {
+          throw new BadRequestException(
+            "assignedStaff cannot contain empty strings",
+          );
+        }
+        if (!existingStaffNames.has(trimmedStaffName.toLowerCase())) {
+          throw new BadRequestException(
+            `Staff member "${staffName}" not found in vendor's staff list`,
+          );
+        }
+      }
+    }
+
+    let newImageUrl: string | undefined = undefined;
+    let newKey: string | undefined = undefined;
+
+    // Handle image upload if provided
+    try {
+      const serviceImageFile = files?.serviceImage?.[0];
+      if (serviceImageFile?.buffer && serviceImageFile?.mimetype) {
+        // Upload new image
+        newKey = `vendors/${userId}/service-${randomUUID()}`;
+        await this.r2Service.uploadObject(
+          newKey,
+          serviceImageFile.buffer,
+          serviceImageFile.mimetype,
+        );
+        newImageUrl = this.r2Service.getPublicUrl(newKey);
+
+        // Delete old image if it exists
+        if (existingService.serviceImage) {
+          const oldKey = this.r2Service.getKeyFromUrl(
+            existingService.serviceImage,
+          );
+          if (oldKey) {
+            await this.r2Service.deleteObject(oldKey).catch(() => undefined);
+          }
+        }
+      }
+
+      // Update the service
+      const updatedService = {
+        ...existingService,
+        serviceName:
+          updateVendorServiceDto.serviceName !== undefined
+            ? updateVendorServiceDto.serviceName
+            : existingService.serviceName,
+        serviceDuration:
+          updateVendorServiceDto.serviceDuration !== undefined
+            ? updateVendorServiceDto.serviceDuration
+            : existingService.serviceDuration,
+        serviceCost:
+          updateVendorServiceDto.serviceCost !== undefined
+            ? updateVendorServiceDto.serviceCost
+            : existingService.serviceCost,
+        gender:
+          updateVendorServiceDto.gender !== undefined
+            ? updateVendorServiceDto.gender
+            : existingService.gender,
+        description:
+          updateVendorServiceDto.description !== undefined
+            ? updateVendorServiceDto.description
+            : existingService.description,
+        category:
+          updateVendorServiceDto.category !== undefined
+            ? updateVendorServiceDto.category
+            : existingService.category,
+        bufferTime:
+          updateVendorServiceDto.bufferTime !== undefined
+            ? updateVendorServiceDto.bufferTime
+            : existingService.bufferTime,
+        assignedStaff:
+          updateVendorServiceDto.assignedStaff !== undefined
+            ? updateVendorServiceDto.assignedStaff
+            : existingService.assignedStaff,
+        maximumNo:
+          updateVendorServiceDto.maximumNo !== undefined
+            ? updateVendorServiceDto.maximumNo
+            : existingService.maximumNo,
+        serviceImage:
+          newImageUrl !== undefined
+            ? newImageUrl
+            : existingService.serviceImage,
+      };
+
+      existingServices[serviceIndex] = updatedService;
+      vendor.services = existingServices;
+      const saved = await vendor.save();
+
+      return this.sanitizeVendor(saved);
+    } catch (error) {
+      // Rollback newly uploaded image on error
+      if (newKey) {
+        await this.r2Service.deleteObject(newKey).catch(() => undefined);
+      }
+
+      throw new BadRequestException(
+        `Failed to update service: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
   }
 
   async approveVendorProduction(
@@ -488,6 +856,18 @@ export class OnboardService {
       const id = randomBytes(6).toString("base64url").slice(0, 10);
       const exists = await this.vendorModel.exists({ shopId: id });
       if (!exists) return id;
+    }
+  }
+
+  private async generateUniqueServiceId(userId: string): Promise<string> {
+    while (true) {
+      const id = randomBytes(8).toString("base64url").slice(0, 12);
+      const vendor = await this.vendorModel.findOne({ userId }).exec();
+      if (!vendor) return id;
+      const existingServiceIds = (vendor.services ?? []).map(
+        (s) => (s as { serviceId?: string }).serviceId,
+      );
+      if (!existingServiceIds.includes(id)) return id;
     }
   }
 
