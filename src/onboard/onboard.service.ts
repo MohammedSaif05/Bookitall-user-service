@@ -919,9 +919,9 @@ export class OnboardService {
         }
       }
 
-      // Update the service
+      // Update the service - explicitly preserve serviceId
       const updatedService = {
-        ...existingService,
+        serviceId: existingService.serviceId, // Explicitly preserve serviceId
         serviceName:
           updateVendorServiceDto.serviceName !== undefined
             ? updateVendorServiceDto.serviceName
