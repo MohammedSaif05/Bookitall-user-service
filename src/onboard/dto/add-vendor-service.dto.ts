@@ -8,7 +8,7 @@ import {
   Min,
   ValidateNested,
 } from "class-validator";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 
 const GENDERS = ["male", "female", "both"] as const;
 type Gender = (typeof GENDERS)[number];
@@ -59,6 +59,19 @@ export class AddVendorServiceDto {
   @IsNotEmpty()
   userId!: string;
 
+  @Transform(({ value }) => {
+    if (value === null || value === undefined || value === "null") {
+      return undefined;
+    }
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value) as VendorServiceItemDto;
+      } catch {
+        return value;
+      }
+    }
+    return value as VendorServiceItemDto;
+  })
   @ValidateNested()
   @Type(() => VendorServiceItemDto)
   service!: VendorServiceItemDto;
