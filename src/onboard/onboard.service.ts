@@ -630,10 +630,12 @@ export class OnboardService {
         assignedStaff?: string[];
         maximumNo?: number;
         serviceImage?: string;
+        isActive?: boolean;
       } = {
         ...service,
         serviceId,
         serviceImage: uploadedImageUrl,
+        isActive: service.isActive !== undefined ? service.isActive : true, // Default to true
       };
 
       existingServices.push(newService);
@@ -691,6 +693,7 @@ export class OnboardService {
       assignedStaff?: string[];
       maximumNo?: number;
       serviceImage?: string;
+      isActive?: boolean;
     };
 
     const serviceImageFile = files?.serviceImage?.[0];
@@ -733,6 +736,10 @@ export class OnboardService {
         bufferTime: existingService.bufferTime,
         assignedStaff: existingService.assignedStaff,
         maximumNo: existingService.maximumNo,
+        isActive:
+          existingService.isActive !== undefined
+            ? existingService.isActive
+            : true,
         serviceImage: uploadedImageUrl, // Update only this field
       };
 
@@ -798,6 +805,7 @@ export class OnboardService {
       assignedStaff?: string[];
       maximumNo?: number;
       serviceImage?: string;
+      isActive?: boolean;
     };
 
     // Validate assignedStaff if provided
@@ -899,6 +907,10 @@ export class OnboardService {
           updateVendorServiceDto.maximumNo !== undefined
             ? updateVendorServiceDto.maximumNo
             : existingService.maximumNo,
+        isActive:
+          updateVendorServiceDto.isActive !== undefined
+            ? updateVendorServiceDto.isActive
+            : (existingService.isActive ?? true),
         serviceImage:
           newImageUrl !== undefined
             ? newImageUrl

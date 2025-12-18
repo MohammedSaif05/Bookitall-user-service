@@ -156,6 +156,7 @@ export class Vendor {
         assignedStaff: [String],
         maximumNo: Number,
         serviceImage: String,
+        isActive: { type: Boolean, default: true },
       },
     ],
   })
@@ -171,6 +172,7 @@ export class Vendor {
     assignedStaff?: string[];
     maximumNo?: number;
     serviceImage?: string;
+    isActive?: boolean;
   }>;
 }
 

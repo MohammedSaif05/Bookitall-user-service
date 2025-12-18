@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -61,4 +62,8 @@ export class UpdateVendorServiceDto {
   @Min(1)
   @IsOptional()
   maximumNo?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 }

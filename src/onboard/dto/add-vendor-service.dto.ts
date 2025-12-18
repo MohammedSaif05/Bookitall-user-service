@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -52,6 +53,10 @@ export class VendorServiceItemDto {
   @Min(1)
   @IsOptional()
   maximumNo?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 }
 
 // DTO for JSON endpoint - only service data (no userId in body)
