@@ -721,10 +721,19 @@ export class OnboardService {
         }
       }
 
-      // Update only the serviceImage field
+      // Update only the serviceImage field - explicitly preserve all fields including serviceId
       const updatedService = {
-        ...existingService,
-        serviceImage: uploadedImageUrl,
+        serviceId: existingService.serviceId, // Explicitly preserve serviceId
+        serviceName: existingService.serviceName,
+        serviceDuration: existingService.serviceDuration,
+        serviceCost: existingService.serviceCost,
+        gender: existingService.gender,
+        description: existingService.description,
+        category: existingService.category,
+        bufferTime: existingService.bufferTime,
+        assignedStaff: existingService.assignedStaff,
+        maximumNo: existingService.maximumNo,
+        serviceImage: uploadedImageUrl, // Update only this field
       };
 
       existingServices[serviceIndex] = updatedService;
