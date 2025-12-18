@@ -10,7 +10,11 @@ import {
 } from "@nestjs/common";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { OnboardService } from "./onboard.service.js";
-import { AddVendorServiceDto } from "./dto/add-vendor-service.dto.js";
+import {
+  AddVendorServiceDto,
+  AddVendorServiceJsonDto,
+} from "./dto/add-vendor-service.dto.js";
+import { AddServiceImageDto } from "./dto/add-service-image.dto.js";
 import { UpdateVendorServiceDto } from "./dto/update-vendor-service.dto.js";
 import { AddVendorStaffDto } from "./dto/add-vendor-staff.dto.js";
 import { UpdateVendorStaffDto } from "./dto/update-vendor-staff.dto.js";
@@ -80,19 +84,40 @@ export class OnboardController {
     return this.onboardService.rejectVendorDocument(userId, payload);
   }
 
+  @Patch(":userId/add-service-json")
+  async addVendorServiceJson(
+    @Param("userId") userId: string,
+    @Body() payload: AddVendorServiceJsonDto,
+  ) {
+    // Convert to AddVendorServiceDto format for service method
+    const addServiceDto: AddVendorServiceDto = {
+      userId,
+      service: payload.service,
+    };
+    return await this.onboardService.addVendorService(
+      userId,
+      addServiceDto,
+      undefined,
+    );
+  }
+
   @Patch(":userId/add-service")
   @UseInterceptors(
     FileFieldsInterceptor([{ name: "serviceImage", maxCount: 1 }]),
   )
-  async addVendorService(
+  async addServiceImage(
     @Param("userId") userId: string,
     @UploadedFiles()
     files: {
       serviceImage?: Array<{ buffer: Buffer; mimetype: string }>;
     },
-    @Body() payload: AddVendorServiceDto,
+    @Body() payload: AddServiceImageDto,
   ) {
-    return this.onboardService.addVendorService(userId, payload, files);
+    return await this.onboardService.addServiceImage(
+      userId,
+      payload.serviceId,
+      files,
+    );
   }
 
   @Patch(":userId/update-service")

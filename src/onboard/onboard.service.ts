@@ -653,6 +653,97 @@ export class OnboardService {
     }
   }
 
+  async addServiceImage(
+    userId: string,
+    serviceId: string,
+    files?: {
+      serviceImage?: Array<{ buffer: Buffer; mimetype: string }>;
+    },
+  ) {
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const existingServices = vendor.services ?? [];
+
+    // Find the service by serviceId
+    const serviceIndex = existingServices.findIndex(
+      (svc) => (svc as { serviceId?: string }).serviceId === serviceId,
+    );
+
+    if (serviceIndex === -1) {
+      throw new NotFoundException(
+        `Service with serviceId "${serviceId}" not found`,
+      );
+    }
+
+    const existingService = existingServices[serviceIndex] as {
+      serviceId: string;
+      serviceName: string;
+      serviceDuration: number;
+      serviceCost: number;
+      gender: "male" | "female" | "both";
+      description?: string;
+      category?: string;
+      bufferTime?: number;
+      assignedStaff?: string[];
+      maximumNo?: number;
+      serviceImage?: string;
+    };
+
+    const serviceImageFile = files?.serviceImage?.[0];
+    if (!serviceImageFile?.buffer || !serviceImageFile?.mimetype) {
+      throw new BadRequestException("serviceImage file is required");
+    }
+
+    let newKey: string | undefined = undefined;
+    let uploadedImageUrl: string | undefined = undefined;
+
+    try {
+      // Upload new image
+      newKey = `vendors/${userId}/service-${randomUUID()}`;
+      await this.r2Service.uploadObject(
+        newKey,
+        serviceImageFile.buffer,
+        serviceImageFile.mimetype,
+      );
+      uploadedImageUrl = this.r2Service.getPublicUrl(newKey);
+
+      // Delete old image if it exists
+      if (existingService.serviceImage) {
+        const oldKey = this.r2Service.getKeyFromUrl(
+          existingService.serviceImage,
+        );
+        if (oldKey) {
+          await this.r2Service.deleteObject(oldKey).catch(() => undefined);
+        }
+      }
+
+      // Update only the serviceImage field
+      const updatedService = {
+        ...existingService,
+        serviceImage: uploadedImageUrl,
+      };
+
+      existingServices[serviceIndex] = updatedService;
+      vendor.services = existingServices;
+      const saved = await vendor.save();
+
+      return this.sanitizeVendor(saved);
+    } catch (error) {
+      // Rollback newly uploaded image on error
+      if (newKey) {
+        await this.r2Service.deleteObject(newKey).catch(() => undefined);
+      }
+
+      throw new BadRequestException(
+        `Failed to add service image: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
   async updateVendorService(
     userId: string,
     updateVendorServiceDto: UpdateVendorServiceDto,

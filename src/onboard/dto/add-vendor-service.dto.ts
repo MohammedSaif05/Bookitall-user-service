@@ -54,22 +54,34 @@ export class VendorServiceItemDto {
   maximumNo?: number;
 }
 
+// DTO for JSON endpoint - only service data (no userId in body)
+export class AddVendorServiceJsonDto {
+  @ValidateNested()
+  @Type(() => VendorServiceItemDto)
+  service!: VendorServiceItemDto;
+}
+
+// DTO for FormData endpoint - with userId and service
 export class AddVendorServiceDto {
   @IsString()
   @IsNotEmpty()
   userId!: string;
 
   @Transform(({ value }) => {
+    // Handle null, undefined, or "null" string
     if (value === null || value === undefined || value === "null") {
       return undefined;
     }
+    // If it's a string, try to parse it as JSON (for FormData)
     if (typeof value === "string") {
       try {
         return JSON.parse(value) as VendorServiceItemDto;
       } catch {
+        // If parsing fails, return as-is (will fail validation, which is correct)
         return value;
       }
     }
+    // If it's already an object (for JSON body), return as-is
     return value as VendorServiceItemDto;
   })
   @ValidateNested()
