@@ -120,21 +120,33 @@ export class OnboardController {
     );
   }
 
-  @Patch(":userId/update-service")
-  @UseInterceptors(
-    FileFieldsInterceptor([{ name: "serviceImage", maxCount: 1 }]),
-  )
-  async updateVendorService(
+  @Patch(":userId/update-service-json")
+  async updateVendorServiceJson(
     @Param("userId") userId: string,
-    @UploadedFiles()
-    files: {
-      serviceImage?: Array<{ buffer: Buffer; mimetype: string }>;
-    },
     @Body() payload: UpdateVendorServiceDto,
   ) {
     return await this.onboardService.updateVendorService(
       userId,
       payload,
+      undefined, // No files for JSON endpoint
+    );
+  }
+
+  @Patch(":userId/update-service")
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: "serviceImage", maxCount: 1 }]),
+  )
+  async updateServiceImage(
+    @Param("userId") userId: string,
+    @UploadedFiles()
+    files: {
+      serviceImage?: Array<{ buffer: Buffer; mimetype: string }>;
+    },
+    @Body() payload: AddServiceImageDto,
+  ) {
+    return await this.onboardService.addServiceImage(
+      userId,
+      payload.serviceId,
       files,
     );
   }
