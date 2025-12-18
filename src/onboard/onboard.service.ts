@@ -953,6 +953,23 @@ export class OnboardService {
     return this.sanitizeVendor(vendor);
   }
 
+  async getVendorServices(userId: string) {
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const services = vendor.services || [];
+    const sanitizedServices = this.sanitizeServices(services);
+
+    return {
+      userId: vendor.userId,
+      businessName: vendor.businessName,
+      services: sanitizedServices,
+    };
+  }
+
   private sanitizeVendor(
     vendor: VendorDocument | Record<string, unknown>,
   ): Record<string, unknown> {

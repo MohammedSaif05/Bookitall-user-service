@@ -30,6 +30,11 @@ export class VendorsController {
     return this.onboardService.getVendorsByLocation(location);
   }
 
+  @Get(":userId/services")
+  getVendorServices(@Param("userId") userId: string) {
+    return this.onboardService.getVendorServices(userId);
+  }
+
   @Get(":userId")
   getVendorByUserId(@Param("userId") userId: string) {
     return this.onboardService.getVendorByUserId(userId);
