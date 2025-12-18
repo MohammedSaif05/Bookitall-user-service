@@ -16,6 +16,7 @@ import {
 } from "./dto/add-vendor-service.dto.js";
 import { AddServiceImageDto } from "./dto/add-service-image.dto.js";
 import { UpdateVendorServiceDto } from "./dto/update-vendor-service.dto.js";
+import { DeleteVendorServiceDto } from "./dto/delete-vendor-service.dto.js";
 import { AddVendorStaffDto } from "./dto/add-vendor-staff.dto.js";
 import { UpdateVendorStaffDto } from "./dto/update-vendor-staff.dto.js";
 import { DeleteVendorStaffDto } from "./dto/delete-vendor-staff.dto.js";
@@ -149,6 +150,14 @@ export class OnboardController {
       payload.serviceId,
       files,
     );
+  }
+
+  @Delete(":userId/service")
+  async deleteVendorService(
+    @Param("userId") userId: string,
+    @Body() payload: DeleteVendorServiceDto,
+  ) {
+    return this.onboardService.deleteVendorService(userId, payload);
   }
 
   @Patch(":userId/add-staff")

@@ -16,6 +16,7 @@ import {
   VendorServiceItemDto,
 } from "./dto/add-vendor-service.dto.js";
 import { UpdateVendorServiceDto } from "./dto/update-vendor-service.dto.js";
+import { DeleteVendorServiceDto } from "./dto/delete-vendor-service.dto.js";
 import { AddVendorStaffDto } from "./dto/add-vendor-staff.dto.js";
 import { UpdateVendorStaffDto } from "./dto/update-vendor-staff.dto.js";
 import { DeleteVendorStaffDto } from "./dto/delete-vendor-staff.dto.js";
@@ -758,6 +759,56 @@ export class OnboardService {
         `Failed to add service image: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
+  }
+
+  async deleteVendorService(
+    userId: string,
+    deleteVendorServiceDto: DeleteVendorServiceDto,
+  ) {
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const existingServices = vendor.services ?? [];
+    const serviceId = deleteVendorServiceDto.serviceId;
+
+    // Find the service by serviceId
+    const serviceIndex = existingServices.findIndex(
+      (svc) => (svc as { serviceId?: string }).serviceId === serviceId,
+    );
+
+    if (serviceIndex === -1) {
+      throw new NotFoundException(
+        `Service with serviceId "${serviceId}" not found`,
+      );
+    }
+
+    const serviceToDelete = existingServices[serviceIndex] as {
+      serviceImage?: string;
+    };
+
+    // Delete the service image from storage if it exists
+    if (serviceToDelete.serviceImage) {
+      try {
+        const imageKey = this.r2Service.getKeyFromUrl(
+          serviceToDelete.serviceImage,
+        );
+        if (imageKey) {
+          await this.r2Service.deleteObject(imageKey).catch(() => undefined);
+        }
+      } catch {
+        // Continue with deletion even if image deletion fails
+      }
+    }
+
+    // Remove the service from the array
+    existingServices.splice(serviceIndex, 1);
+    vendor.services = existingServices;
+
+    const saved = await vendor.save();
+    return this.sanitizeVendor(saved);
   }
 
   async updateVendorService(
