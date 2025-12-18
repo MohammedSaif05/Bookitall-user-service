@@ -1054,7 +1054,7 @@ export class OnboardService {
   }
 
   async getVendorServices(userId: string) {
-    const vendor = await this.vendorModel.findOne({ userId }).exec();
+    const vendor = await this.vendorModel.findOne({ userId }).lean().exec();
 
     if (!vendor) {
       throw new NotFoundException(`Vendor with userId ${userId} not found`);
