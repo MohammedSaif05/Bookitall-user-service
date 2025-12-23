@@ -17,6 +17,8 @@ import {
 } from "./dto/add-vendor-service.dto.js";
 import { UpdateVendorServiceDto } from "./dto/update-vendor-service.dto.js";
 import { DeleteVendorServiceDto } from "./dto/delete-vendor-service.dto.js";
+import { AddVendorBankDetailsDto } from "./dto/add-vendor-bank-details.dto.js";
+import { UpdateVendorBankDetailsDto } from "./dto/update-vendor-bank-details.dto.js";
 import { AddVendorStaffDto } from "./dto/add-vendor-staff.dto.js";
 import { UpdateVendorStaffDto } from "./dto/update-vendor-staff.dto.js";
 import { DeleteVendorStaffDto } from "./dto/delete-vendor-staff.dto.js";
@@ -985,6 +987,86 @@ export class OnboardService {
     }
   }
 
+  async addVendorBankDetails(
+    userId: string,
+    addVendorBankDetailsDto: AddVendorBankDetailsDto,
+  ) {
+    if (addVendorBankDetailsDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const existingBankDetails = vendor.bankDetails ?? [];
+
+    // Add new bank details to the array
+    existingBankDetails.push(addVendorBankDetailsDto.bankDetails);
+    vendor.bankDetails = existingBankDetails;
+
+    const saved = await vendor.save();
+    return this.sanitizeVendor(saved);
+  }
+
+  async updateVendorBankDetails(
+    userId: string,
+    updateVendorBankDetailsDto: UpdateVendorBankDetailsDto,
+  ) {
+    if (updateVendorBankDetailsDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const existingBankDetails: Array<{
+      accountNumber: string;
+      ifscCode: string;
+      accountHolderName: string;
+    }> = vendor.bankDetails ?? [];
+    const bankIndex = updateVendorBankDetailsDto.bankIndex;
+
+    if (bankIndex < 0 || bankIndex >= existingBankDetails.length) {
+      throw new BadRequestException(
+        `Bank details index ${bankIndex} is out of range. Total bank details: ${existingBankDetails.length}`,
+      );
+    }
+
+    const existingBankDetail = existingBankDetails[bankIndex];
+
+    // Update only the provided fields
+    const updatedBankDetail = {
+      accountNumber:
+        updateVendorBankDetailsDto.accountNumber !== undefined
+          ? updateVendorBankDetailsDto.accountNumber
+          : existingBankDetail.accountNumber,
+      ifscCode:
+        updateVendorBankDetailsDto.ifscCode !== undefined
+          ? updateVendorBankDetailsDto.ifscCode
+          : existingBankDetail.ifscCode,
+      accountHolderName:
+        updateVendorBankDetailsDto.accountHolderName !== undefined
+          ? updateVendorBankDetailsDto.accountHolderName
+          : existingBankDetail.accountHolderName,
+    };
+
+    existingBankDetails[bankIndex] = updatedBankDetail;
+    vendor.bankDetails = existingBankDetails;
+
+    const saved = await vendor.save();
+    return this.sanitizeVendor(saved);
+  }
+
   async approveVendorProduction(
     userId: string,
     approveVendorProductionDto: ApproveVendorProductionDto,
@@ -1153,6 +1235,7 @@ export class OnboardService {
     result.days = this.sanitizeDays(result.days);
     result.services = this.sanitizeServices(result.services);
     result.staff = this.sanitizeStaff(result.staff);
+    result.bankDetails = this.sanitizeBankDetails(result.bankDetails);
 
     return result;
   }
@@ -1214,6 +1297,19 @@ export class OnboardService {
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _id, ...rest } = staffObj;
+      return rest;
+    });
+  }
+
+  private sanitizeBankDetails(bankDetails: unknown): unknown {
+    if (!Array.isArray(bankDetails)) {
+      return bankDetails;
+    }
+
+    return bankDetails.map((bankDetailItem: unknown) => {
+      const bankDetailObj = bankDetailItem as Record<string, unknown>;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, ...rest } = bankDetailObj;
       return rest;
     });
   }

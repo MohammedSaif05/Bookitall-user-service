@@ -174,6 +174,22 @@ export class Vendor {
     serviceImage?: string;
     isActive?: boolean;
   }>;
+
+  @Prop({
+    type: [
+      {
+        accountNumber: { type: String, required: true },
+        ifscCode: { type: String, required: true },
+        accountHolderName: { type: String, required: true },
+      },
+    ],
+    default: [],
+  })
+  bankDetails?: Array<{
+    accountNumber: string;
+    ifscCode: string;
+    accountHolderName: string;
+  }>;
 }
 
 export type VendorDocument = Vendor & Document;
