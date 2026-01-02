@@ -128,6 +128,9 @@ export class Vendor {
   @Prop({ type: String })
   serviceRejectMessage?: string;
 
+  @Prop({ type: String })
+  bankRejectMessage?: string;
+
   @Prop({ type: String, unique: true, sparse: true })
   shopId?: string;
 

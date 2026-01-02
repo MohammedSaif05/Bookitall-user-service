@@ -29,6 +29,7 @@ import { UpdateVendorImagesDto } from "./dto/update-vendor-images.dto.js";
 import { RejectVendorDocumentDto } from "./dto/reject-vendor-document.dto.js";
 import { RejectVendorImagesDto } from "./dto/reject-vendor-images.dto.js";
 import { RejectVendorServicesDto } from "./dto/reject-vendor-services.dto.js";
+import { RejectVendorBankDetailsDto } from "./dto/reject-vendor-bank-details.dto.js";
 
 @Injectable()
 export class OnboardService {
@@ -369,6 +370,30 @@ export class OnboardService {
     // Clear services array and set reject message
     vendor.services = [];
     vendor.serviceRejectMessage = rejectVendorServicesDto.message;
+
+    const saved = await vendor.save();
+    return this.sanitizeVendor(saved);
+  }
+
+  async rejectVendorBankDetails(
+    userId: string,
+    rejectVendorBankDetailsDto: RejectVendorBankDetailsDto,
+  ) {
+    if (rejectVendorBankDetailsDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    // Clear bankDetails array and set reject message
+    vendor.bankDetails = [];
+    vendor.bankRejectMessage = rejectVendorBankDetailsDto.message;
 
     const saved = await vendor.save();
     return this.sanitizeVendor(saved);

@@ -29,6 +29,7 @@ import { UpdateVendorImagesDto } from "./dto/update-vendor-images.dto.js";
 import { RejectVendorDocumentDto } from "./dto/reject-vendor-document.dto.js";
 import { RejectVendorImagesDto } from "./dto/reject-vendor-images.dto.js";
 import { RejectVendorServicesDto } from "./dto/reject-vendor-services.dto.js";
+import { RejectVendorBankDetailsDto } from "./dto/reject-vendor-bank-details.dto.js";
 
 @Controller("vendor")
 export class OnboardController {
@@ -94,6 +95,14 @@ export class OnboardController {
     @Body() payload: RejectVendorServicesDto,
   ) {
     return this.onboardService.rejectVendorServices(userId, payload);
+  }
+
+  @Patch(":userId/reject-bank-details")
+  async rejectVendorBankDetails(
+    @Param("userId") userId: string,
+    @Body() payload: RejectVendorBankDetailsDto,
+  ) {
+    return await this.onboardService.rejectVendorBankDetails(userId, payload);
   }
 
   @Patch(":userId/add-service-json")
