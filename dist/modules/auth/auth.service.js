@@ -18,18 +18,15 @@ const mongoose_1 = require("@nestjs/mongoose");
 const crypto_1 = require("crypto");
 const mongoose_2 = require("mongoose");
 const user_type_constant_js_1 = require("./constants/user-type.constant.js");
-const customer_schema_js_1 = require("./schemas/customer.schema.js");
 const user_schema_js_1 = require("./schemas/user.schema.js");
 const vendor_schema_js_1 = require("./schemas/vendor.schema.js");
 let AuthService = class AuthService {
     userModel;
-    customerModel;
     vendorModel;
     demoOtp = "123456";
     mobilePattern = /^\d{10}$/;
-    constructor(userModel, customerModel, vendorModel) {
+    constructor(userModel, vendorModel) {
         this.userModel = userModel;
-        this.customerModel = customerModel;
         this.vendorModel = vendorModel;
     }
     sendOtp(mobileNo) {
@@ -87,11 +84,25 @@ let AuthService = class AuthService {
     async syncRoleRecords(userId, mobileNo, userType) {
         if (userType === "vendor") {
             await this.vendorModel.updateOne({ userId }, { userId, mobileNo }, { upsert: true });
-            await this.customerModel.deleteOne({ userId }).exec();
             return;
         }
-        await this.customerModel.updateOne({ userId }, { userId, mobileNo }, { upsert: true });
         await this.vendorModel.deleteOne({ userId }).exec();
+    }
+    async updateCustomerDetails(userId, customerName) {
+        const user = await this.userModel.findOne({ userId }).exec();
+        if (!user) {
+            throw new common_1.NotFoundException(`User with userId ${userId} not found`);
+        }
+        if (user.userType !== "customer") {
+            throw new common_1.BadRequestException("user is not a customer");
+        }
+        user.customerName = customerName;
+        await user.save();
+        return {
+            message: "customer details updated",
+            userId: user.userId,
+            customerName: user.customerName,
+        };
     }
     async generateUniqueUserId() {
         while (true) {
@@ -107,10 +118,8 @@ exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(user_schema_js_1.User.name)),
-    __param(1, (0, mongoose_1.InjectModel)(customer_schema_js_1.Customer.name)),
-    __param(2, (0, mongoose_1.InjectModel)(vendor_schema_js_1.Vendor.name)),
+    __param(1, (0, mongoose_1.InjectModel)(vendor_schema_js_1.Vendor.name)),
     __metadata("design:paramtypes", [mongoose_2.Model,
-        mongoose_2.Model,
         mongoose_2.Model])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

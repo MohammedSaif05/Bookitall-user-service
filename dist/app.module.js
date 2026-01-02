@@ -20,6 +20,8 @@ const app_service_1 = require("./app.service");
 const health_module_1 = require("./modules/health/health.module");
 const auth_module_1 = require("./modules/auth/auth.module");
 const onboard_module_1 = require("./onboard/onboard.module");
+const storage_module_1 = require("./common/storage/storage.module");
+const verification_module_1 = require("./modules/verification/verification.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -40,6 +42,8 @@ exports.AppModule = AppModule = __decorate([
             health_module_1.HealthModule,
             auth_module_1.AuthModule,
             onboard_module_1.OnboardModule,
+            storage_module_1.StorageModule,
+            verification_module_1.VerificationModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

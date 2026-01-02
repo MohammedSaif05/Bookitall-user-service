@@ -9,4 +9,3 @@ export class RejectVendorBankDetailsDto {
   @IsNotEmpty()
   message!: string;
 }
-

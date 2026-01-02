@@ -24,6 +24,12 @@ class EnvironmentVariables {
     PORT;
     GLOBAL_PREFIX;
     MONGODB_URI;
+    R2_ENDPOINT;
+    R2_BUCKET;
+    R2_ACCESS_KEY_ID;
+    R2_SECRET_ACCESS_KEY;
+    R2_REGION;
+    R2_PUBLIC_BASE;
 }
 __decorate([
     (0, class_validator_1.IsEnum)(NODE_ENV_VALUES, {
@@ -52,6 +58,36 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], EnvironmentVariables.prototype, "MONGODB_URI", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], EnvironmentVariables.prototype, "R2_ENDPOINT", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], EnvironmentVariables.prototype, "R2_BUCKET", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], EnvironmentVariables.prototype, "R2_ACCESS_KEY_ID", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], EnvironmentVariables.prototype, "R2_SECRET_ACCESS_KEY", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], EnvironmentVariables.prototype, "R2_REGION", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], EnvironmentVariables.prototype, "R2_PUBLIC_BASE", void 0);
 const validateEnv = (config) => {
     const validatedConfig = (0, class_transformer_1.plainToInstance)(EnvironmentVariables, config, {
         enableImplicitConversion: true,

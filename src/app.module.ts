@@ -9,6 +9,7 @@ import { HealthModule } from "./modules/health/health.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { OnboardModule } from "./onboard/onboard.module";
 import { StorageModule } from "./common/storage/storage.module";
+import { VerificationModule } from "./modules/verification/verification.module";
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { StorageModule } from "./common/storage/storage.module";
     AuthModule,
     OnboardModule,
     StorageModule,
+    VerificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
