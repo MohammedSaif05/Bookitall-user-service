@@ -28,6 +28,7 @@ import { UpdateVendorDocumentDto } from "./dto/update-vendor-document.dto.js";
 import { UpdateVendorImagesDto } from "./dto/update-vendor-images.dto.js";
 import { RejectVendorDocumentDto } from "./dto/reject-vendor-document.dto.js";
 import { RejectVendorImagesDto } from "./dto/reject-vendor-images.dto.js";
+import { RejectVendorServicesDto } from "./dto/reject-vendor-services.dto.js";
 
 @Injectable()
 export class OnboardService {
@@ -329,6 +330,45 @@ export class OnboardService {
 
     vendor.isBusinessDocumentApproved = false;
     vendor.documentRejectMessage = rejectVendorDocumentDto.message;
+
+    const saved = await vendor.save();
+    return this.sanitizeVendor(saved);
+  }
+
+  async rejectVendorServices(
+    userId: string,
+    rejectVendorServicesDto: RejectVendorServicesDto,
+  ) {
+    if (rejectVendorServicesDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    // Delete all service images from cloud storage
+    const services = vendor.services ?? [];
+    for (const service of services) {
+      if (service.serviceImage) {
+        try {
+          const imageKey = this.r2Service.getKeyFromUrl(service.serviceImage);
+          if (imageKey) {
+            await this.r2Service.deleteObject(imageKey).catch(() => undefined);
+          }
+        } catch {
+          // Continue with deletion even if image deletion fails
+        }
+      }
+    }
+
+    // Clear services array and set reject message
+    vendor.services = [];
+    vendor.serviceRejectMessage = rejectVendorServicesDto.message;
 
     const saved = await vendor.save();
     return this.sanitizeVendor(saved);
