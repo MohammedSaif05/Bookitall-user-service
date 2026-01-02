@@ -306,6 +306,22 @@ export class OnboardService {
       throw new NotFoundException(`Vendor with userId ${userId} not found`);
     }
 
+    // Delete all business images from cloud storage
+    if (Array.isArray(vendor.businessImages)) {
+      for (const url of vendor.businessImages) {
+        try {
+          const key = this.r2Service.getKeyFromUrl(url);
+          if (key) {
+            await this.r2Service.deleteObject(key).catch(() => undefined);
+          }
+        } catch {
+          // Continue with deletion even if image deletion fails
+        }
+      }
+    }
+
+    // Clear businessImages array and set reject message
+    vendor.businessImages = [];
     vendor.isBusinessImageApproved = false;
     vendor.imageRejectMessage = rejectVendorImagesDto.message;
 
@@ -329,6 +345,20 @@ export class OnboardService {
       throw new NotFoundException(`Vendor with userId ${userId} not found`);
     }
 
+    // Delete business document from cloud storage
+    if (vendor.businessDocument) {
+      try {
+        const key = this.r2Service.getKeyFromUrl(vendor.businessDocument);
+        if (key) {
+          await this.r2Service.deleteObject(key).catch(() => undefined);
+        }
+      } catch {
+        // Continue with deletion even if document deletion fails
+      }
+    }
+
+    // Clear businessDocument field and set reject message
+    vendor.businessDocument = undefined;
     vendor.isBusinessDocumentApproved = false;
     vendor.documentRejectMessage = rejectVendorDocumentDto.message;
 
