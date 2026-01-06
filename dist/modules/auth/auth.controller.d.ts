@@ -5,9 +5,11 @@ export declare class AuthController {
     private readonly authService;
     constructor(authService: AuthService);
     sendOtp(payload: SendOtpDto): {
+        success: boolean;
         message: string;
     };
     verifyOtp(payload: VerifyOtpDto): Promise<{
+        success: boolean;
         message: string;
         userId: string;
     }>;

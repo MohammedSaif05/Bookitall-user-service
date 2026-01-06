@@ -31,21 +31,22 @@ let AuthService = class AuthService {
     }
     sendOtp(mobileNo) {
         if (!this.mobilePattern.test(mobileNo)) {
-            throw new common_1.BadRequestException("mobileNo must be a 10 digit number");
+            throw new common_1.BadRequestException("Please provide a valid 10-digit mobile number.");
         }
         return {
-            message: "otp sent successfully",
+            success: true,
+            message: "OTP sent successfully",
         };
     }
     async verifyOtp(mobileNo, otp, userType) {
         if (!this.mobilePattern.test(mobileNo)) {
-            throw new common_1.BadRequestException("mobileNo must be a 10 digit number");
+            throw new common_1.BadRequestException("Please provide a valid 10-digit mobile number.");
         }
         if (!user_type_constant_js_1.USER_TYPES.includes(userType)) {
-            throw new common_1.BadRequestException("userType must be vendor or customer");
+            throw new common_1.BadRequestException("Invalid user type. Please select either 'vendor' or 'customer'.");
         }
         if (otp !== this.demoOtp) {
-            throw new common_1.BadRequestException("invalid otp");
+            throw new common_1.BadRequestException("Invalid OTP. Please check the code and try again.");
         }
         const existingUser = await this.userModel.findOne({ mobileNo }).exec();
         if (existingUser) {
@@ -55,13 +56,15 @@ let AuthService = class AuthService {
             }
             await this.syncRoleRecords(existingUser.userId, mobileNo, userType);
             return {
-                message: "otp verified",
+                success: true,
+                message: "OTP verified successfully",
                 userId: existingUser.userId,
             };
         }
         const userId = await this.createUserWithRoleRecord(mobileNo, userType);
         return {
-            message: "otp verified",
+            success: true,
+            message: "OTP verified successfully",
             userId,
         };
     }
@@ -77,7 +80,7 @@ let AuthService = class AuthService {
         }
         catch {
             await this.userModel.deleteOne({ _id: user._id }).exec();
-            throw new common_1.InternalServerErrorException("failed to create role record for user");
+            throw new common_1.InternalServerErrorException("Unable to create account. Please try again later.");
         }
         return user.userId;
     }
@@ -91,15 +94,16 @@ let AuthService = class AuthService {
     async updateCustomerDetails(userId, customerName) {
         const user = await this.userModel.findOne({ userId }).exec();
         if (!user) {
-            throw new common_1.NotFoundException(`User with userId ${userId} not found`);
+            throw new common_1.NotFoundException("User account not found. Please check your user ID.");
         }
         if (user.userType !== "customer") {
-            throw new common_1.BadRequestException("user is not a customer");
+            throw new common_1.BadRequestException("This account is not a customer account. Please use the correct account type.");
         }
         user.customerName = customerName;
         await user.save();
         return {
-            message: "customer details updated",
+            success: true,
+            message: "Customer details updated successfully",
             userId: user.userId,
             customerName: user.customerName,
         };

@@ -37,11 +37,22 @@ Body:
 {
   "success": true,
   "data": {
+    "success": true,
+    "message": "Business images uploaded successfully",
     "imageUrls": [
       "https://pub-.../vendors/.../business-xxx-0",
       "https://pub-.../vendors/.../business-xxx-1"
     ]
   }
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "message": "Please upload exactly 2 business images",
+  "statusCode": 400
 }
 ```
 
@@ -71,6 +82,15 @@ Body:
 }
 ```
 
+**Error Response:**
+```json
+{
+  "success": false,
+  "message": "Vendor account not found. Please check your user ID.",
+  "statusCode": 404
+}
+```
+
 ### Business Document
 
 #### 1. Upload Business Document
@@ -88,8 +108,19 @@ Body:
 {
   "success": true,
   "data": {
+    "success": true,
+    "message": "Business document uploaded successfully",
     "documentUrl": "https://pub-.../vendors/.../business-document-xxx"
   }
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "message": "Please upload exactly 1 business document",
+  "statusCode": 400
 }
 ```
 
@@ -134,8 +165,19 @@ Body:
 {
   "success": true,
   "data": {
+    "success": true,
+    "message": "Service image uploaded successfully",
     "imageUrl": "https://pub-.../vendors/.../service-xxx"
   }
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "message": "Service image is required. Please upload an image file.",
+  "statusCode": 400
 }
 ```
 
@@ -225,27 +267,37 @@ await saveBusinessImages(userId, imageUrls);
 ✅ **Explicit Termination**: Responses explicitly ended
 ✅ **Error Handling**: Errors thrown before upload starts
 ✅ **Cleanup**: Failed uploads cleaned up automatically
-✅ **Backward Compatible**: Legacy endpoints still available
+✅ **User-Friendly Messages**: All responses include clear, user-friendly success and error messages
 
 ## Error Handling
 
 All validation happens **before** upload starts:
-- Invalid userId → Error before upload
-- Missing files → Error before upload
-- Invalid file format → Error before upload
+- Invalid userId → User-friendly error: "User ID mismatch. Please ensure you're uploading for the correct account."
+- Missing files → User-friendly error: "Please upload exactly 2 business images" (or appropriate message)
+- Invalid file format → User-friendly error: "Invalid image file. Please ensure the file is a valid image format."
 
 If upload fails:
 - Uploaded files are automatically cleaned up from R2
-- Error response returned
+- User-friendly error response: "Unable to upload business images. Please check your internet connection and try again."
 - No partial state in database
 
-## Legacy Endpoints
+### Common Error Messages
 
-The following legacy endpoints are still available for backward compatibility but should be migrated to the 2-step flow:
+**Validation Errors:**
+- `"User ID mismatch. Please ensure you're uploading for the correct account."` - userId validation failed
+- `"Please upload exactly 2 business images"` - Wrong number of images
+- `"Please upload exactly 1 business document"` - Wrong number of documents
+- `"Invalid image file. Please ensure the file is a valid image format."` - Invalid file
+- `"Service image is required. Please upload an image file."` - Missing service image
 
-- `PATCH /api/vendor/:userId/business-images` (legacy)
-- `PATCH /api/vendor/:userId/business-document` (legacy)
-- `PATCH /api/vendor/:userId/add-service` (legacy)
+**Not Found Errors:**
+- `"Vendor account not found. Please check your user ID."` - Vendor doesn't exist
+- `"Service not found. Please check the service ID and try again."` - Service doesn't exist
+
+**Upload Errors:**
+- `"Unable to upload business images. Please check your internet connection and try again."` - Upload failed
+- `"Unable to upload business document. Please check your internet connection and try again."` - Upload failed
+- `"Unable to upload service image. Please check your internet connection and try again."` - Upload failed
 
 ## Best Practices
 

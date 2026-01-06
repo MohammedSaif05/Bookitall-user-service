@@ -47,7 +47,7 @@ export class OnboardService {
     // Validate that userId in body matches userId in route parameter
     if (updateVendorDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're updating the correct account.",
       );
     }
 
@@ -55,7 +55,9 @@ export class OnboardService {
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     // Update the vendor with the new fields
@@ -129,10 +131,14 @@ export class OnboardService {
     // Save the updated vendor
     try {
       const savedVendor = await vendor.save();
-      return this.sanitizeVendor(savedVendor);
-    } catch (error) {
+      return {
+        success: true,
+        message: "Vendor details updated successfully",
+        data: this.sanitizeVendor(savedVendor),
+      };
+    } catch {
       throw new BadRequestException(
-        `Failed to update vendor: ${error instanceof Error ? error.message : "Unknown error"}`,
+        "Unable to update vendor details. Please try again later.",
       );
     }
   }
@@ -140,7 +146,9 @@ export class OnboardService {
   async getVendorsByLocation(location: string) {
     const trimmedLocation = location?.trim();
     if (!trimmedLocation) {
-      throw new BadRequestException("location is required");
+      throw new BadRequestException(
+        "Location is required. Please provide a valid location.",
+      );
     }
 
     const regex = new RegExp(`^${this.escapeRegExp(trimmedLocation)}$`, "i");
@@ -174,14 +182,16 @@ export class OnboardService {
   ) {
     if (rejectVendorImagesDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're rejecting for the correct account.",
       );
     }
 
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     // Delete all business images from cloud storage
@@ -204,7 +214,11 @@ export class OnboardService {
     vendor.imageRejectMessage = rejectVendorImagesDto.message;
 
     const saved = await vendor.save();
-    return this.sanitizeVendor(saved);
+    return {
+      success: true,
+      message: "Business images rejected successfully",
+      data: this.sanitizeVendor(saved),
+    };
   }
 
   async rejectVendorDocument(
@@ -213,14 +227,16 @@ export class OnboardService {
   ) {
     if (rejectVendorDocumentDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're rejecting for the correct account.",
       );
     }
 
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     // Delete business document from cloud storage
@@ -241,7 +257,11 @@ export class OnboardService {
     vendor.documentRejectMessage = rejectVendorDocumentDto.message;
 
     const saved = await vendor.save();
-    return this.sanitizeVendor(saved);
+    return {
+      success: true,
+      message: "Business document rejected successfully",
+      data: this.sanitizeVendor(saved),
+    };
   }
 
   async rejectVendorServices(
@@ -250,14 +270,16 @@ export class OnboardService {
   ) {
     if (rejectVendorServicesDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're rejecting for the correct account.",
       );
     }
 
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     // Delete all service images from cloud storage
@@ -280,7 +302,11 @@ export class OnboardService {
     vendor.serviceRejectMessage = rejectVendorServicesDto.message;
 
     const saved = await vendor.save();
-    return this.sanitizeVendor(saved);
+    return {
+      success: true,
+      message: "Services rejected successfully",
+      data: this.sanitizeVendor(saved),
+    };
   }
 
   async rejectVendorBankDetails(
@@ -289,14 +315,16 @@ export class OnboardService {
   ) {
     if (rejectVendorBankDetailsDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're rejecting for the correct account.",
       );
     }
 
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     // Clear bankDetails array and set reject message
@@ -304,36 +332,44 @@ export class OnboardService {
     vendor.bankRejectMessage = rejectVendorBankDetailsDto.message;
 
     const saved = await vendor.save();
-    return this.sanitizeVendor(saved);
+    return {
+      success: true,
+      message: "Bank details rejected successfully",
+      data: this.sanitizeVendor(saved),
+    };
   }
 
   async addVendorStaff(userId: string, addVendorStaffDto: AddVendorStaffDto) {
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     const staffItems = addVendorStaffDto.staff ?? [];
     if (!Array.isArray(staffItems) || staffItems.length === 0) {
-      throw new BadRequestException("staff must contain at least one item");
+      throw new BadRequestException(
+        "Please provide at least one staff member to add.",
+      );
     }
 
     const normalizedIncoming = staffItems.map((item, index) => {
       if (!item || typeof item !== "object") {
         throw new BadRequestException(
-          `staff item at index ${index} must be an object`,
+          `Invalid staff member at position ${index + 1}. Please provide a valid staff object.`,
         );
       }
       if (!item.name || typeof item.name !== "string") {
         throw new BadRequestException(
-          `staff item at index ${index} must have a name (string)`,
+          `Staff member at position ${index + 1} must have a valid name.`,
         );
       }
       const trimmedName = item.name.trim();
       if (!trimmedName) {
         throw new BadRequestException(
-          `staff item at index ${index} name cannot be empty`,
+          `Staff member at position ${index + 1} name cannot be empty.`,
         );
       }
       const isActive =
@@ -350,7 +386,9 @@ export class OnboardService {
     );
     const uniqueIncoming = new Set(incomingLower);
     if (uniqueIncoming.size !== incomingLower.length) {
-      throw new BadRequestException("Duplicate staff names in request payload");
+      throw new BadRequestException(
+        "Duplicate staff names found. Please ensure each staff member has a unique name.",
+      );
     }
 
     const existingStaff = vendor.staff ?? [];
@@ -368,14 +406,18 @@ export class OnboardService {
     );
     if (duplicateExisting) {
       throw new BadRequestException(
-        `Staff name already exists: ${duplicateExisting.name}`,
+        `Staff member "${duplicateExisting.name}" already exists. Please use a different name.`,
       );
     }
 
     vendor.staff = [...existingStaff, ...normalizedIncoming];
     const saved = await vendor.save();
 
-    return this.sanitizeVendor(saved);
+    return {
+      success: true,
+      message: "Staff members added successfully",
+      data: this.sanitizeVendor(saved),
+    };
   }
 
   async updateVendorStaff(
@@ -385,7 +427,9 @@ export class OnboardService {
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     const existingStaff = vendor.staff ?? [];
@@ -400,7 +444,7 @@ export class OnboardService {
 
     if (staffIndex === -1) {
       throw new NotFoundException(
-        `Staff member with name "${updateVendorStaffDto.currentName}" not found`,
+        `Staff member "${updateVendorStaffDto.currentName}" not found. Please check the name and try again.`,
       );
     }
 
@@ -415,7 +459,9 @@ export class OnboardService {
     if (updateVendorStaffDto.newName !== undefined) {
       const trimmedNewName = updateVendorStaffDto.newName.trim();
       if (!trimmedNewName) {
-        throw new BadRequestException("newName cannot be empty");
+        throw new BadRequestException(
+          "Staff member name cannot be empty. Please provide a valid name.",
+        );
       }
 
       // Check if new name already exists (excluding current staff)
@@ -433,7 +479,7 @@ export class OnboardService {
 
       if (existingLookup.has(trimmedNewName.toLowerCase())) {
         throw new BadRequestException(
-          `Staff name already exists: ${trimmedNewName}`,
+          `Staff member "${trimmedNewName}" already exists. Please use a different name.`,
         );
       }
 
@@ -453,14 +499,20 @@ export class OnboardService {
     vendor.staff = existingStaff;
 
     const saved = await vendor.save();
-    return this.sanitizeVendor(saved);
+    return {
+      success: true,
+      message: "Staff member updated successfully",
+      data: this.sanitizeVendor(saved),
+    };
   }
 
   async getVendorStaff(userId: string) {
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     const staff = vendor.staff ?? [];
@@ -480,7 +532,11 @@ export class OnboardService {
       };
     });
 
-    return normalizedStaff;
+    return {
+      success: true,
+      message: "Staff members retrieved successfully",
+      data: normalizedStaff,
+    };
   }
 
   async deleteVendorStaff(
@@ -490,7 +546,9 @@ export class OnboardService {
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     const existingStaff = vendor.staff ?? [];
@@ -505,7 +563,7 @@ export class OnboardService {
 
     if (staffIndex === -1) {
       throw new NotFoundException(
-        `Staff member with name "${deleteVendorStaffDto.name}" not found`,
+        `Staff member "${deleteVendorStaffDto.name}" not found. Please check the name and try again.`,
       );
     }
 
@@ -514,7 +572,11 @@ export class OnboardService {
     vendor.staff = existingStaff;
 
     const saved = await vendor.save();
-    return this.sanitizeVendor(saved);
+    return {
+      success: true,
+      message: "Staff member deleted successfully",
+      data: this.sanitizeVendor(saved),
+    };
   }
 
   async addVendorService(
@@ -526,18 +588,22 @@ export class OnboardService {
   ) {
     if (addVendorServiceDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're adding service for the correct account.",
       );
     }
 
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     if (!addVendorServiceDto.service) {
-      throw new BadRequestException("service is required");
+      throw new BadRequestException(
+        "Service details are required. Please provide service information.",
+      );
     }
 
     const service: VendorServiceItemDto = addVendorServiceDto.service;
@@ -618,15 +684,19 @@ export class OnboardService {
       vendor.services = existingServices;
       const saved = await vendor.save();
 
-      return this.sanitizeVendor(saved);
-    } catch (error) {
+      return {
+        success: true,
+        message: "Service added successfully",
+        data: this.sanitizeVendor(saved),
+      };
+    } catch {
       // Rollback newly uploaded image on error
       if (newKey) {
         await this.r2Service.deleteObject(newKey).catch(() => undefined);
       }
 
       throw new BadRequestException(
-        `Failed to add service: ${error instanceof Error ? error.message : "Unknown error"}`,
+        "Unable to add service. Please check your service details and try again.",
       );
     }
   }
@@ -638,7 +708,9 @@ export class OnboardService {
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     const existingServices = vendor.services ?? [];
@@ -651,7 +723,7 @@ export class OnboardService {
 
     if (serviceIndex === -1) {
       throw new NotFoundException(
-        `Service with serviceId "${serviceId}" not found`,
+        "Service not found. Please check the service ID and try again.",
       );
     }
 
@@ -678,7 +750,11 @@ export class OnboardService {
     vendor.services = existingServices;
 
     const saved = await vendor.save();
-    return this.sanitizeVendor(saved);
+    return {
+      success: true,
+      message: "Service deleted successfully",
+      data: this.sanitizeVendor(saved),
+    };
   }
 
   async updateVendorService(
@@ -690,14 +766,16 @@ export class OnboardService {
   ) {
     if (updateVendorServiceDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're updating service for the correct account.",
       );
     }
 
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     const existingServices = vendor.services ?? [];
@@ -710,7 +788,7 @@ export class OnboardService {
 
     if (serviceIndex === -1) {
       throw new NotFoundException(
-        `Service with serviceId "${serviceId}" not found`,
+        "Service not found. Please check the service ID and try again.",
       );
     }
 
@@ -745,18 +823,18 @@ export class OnboardService {
       for (const staffName of updateVendorServiceDto.assignedStaff) {
         if (typeof staffName !== "string") {
           throw new BadRequestException(
-            "assignedStaff must contain only strings",
+            "Assigned staff must contain only valid staff names.",
           );
         }
         const trimmedStaffName = staffName.trim();
         if (!trimmedStaffName) {
           throw new BadRequestException(
-            "assignedStaff cannot contain empty strings",
+            "Assigned staff names cannot be empty. Please provide valid staff names.",
           );
         }
         if (!existingStaffNames.has(trimmedStaffName.toLowerCase())) {
           throw new BadRequestException(
-            `Staff member "${staffName}" not found in vendor's staff list`,
+            `Staff member "${staffName}" not found. Please add the staff member first or use an existing staff name.`,
           );
         }
       }
@@ -842,15 +920,19 @@ export class OnboardService {
       vendor.services = existingServices;
       const saved = await vendor.save();
 
-      return this.sanitizeVendor(saved);
-    } catch (error) {
+      return {
+        success: true,
+        message: "Service updated successfully",
+        data: this.sanitizeVendor(saved),
+      };
+    } catch {
       // Rollback newly uploaded image on error
       if (newKey) {
         await this.r2Service.deleteObject(newKey).catch(() => undefined);
       }
 
       throw new BadRequestException(
-        `Failed to update service: ${error instanceof Error ? error.message : "Unknown error"}`,
+        "Unable to update service. Please check your service details and try again.",
       );
     }
   }
@@ -861,14 +943,16 @@ export class OnboardService {
   ) {
     if (addVendorBankDetailsDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're adding bank details for the correct account.",
       );
     }
 
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     const existingBankDetails = vendor.bankDetails ?? [];
@@ -878,7 +962,11 @@ export class OnboardService {
     vendor.bankDetails = existingBankDetails;
 
     const saved = await vendor.save();
-    return this.sanitizeVendor(saved);
+    return {
+      success: true,
+      message: "Bank details added successfully",
+      data: this.sanitizeVendor(saved),
+    };
   }
 
   async updateVendorBankDetails(
@@ -887,14 +975,16 @@ export class OnboardService {
   ) {
     if (updateVendorBankDetailsDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're updating bank details for the correct account.",
       );
     }
 
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     const existingBankDetails: Array<{
@@ -906,7 +996,7 @@ export class OnboardService {
 
     if (bankIndex < 0 || bankIndex >= existingBankDetails.length) {
       throw new BadRequestException(
-        `Bank details index ${bankIndex} is out of range. Total bank details: ${existingBankDetails.length}`,
+        `Invalid bank details index. Please provide an index between 0 and ${existingBankDetails.length - 1}.`,
       );
     }
 
@@ -932,7 +1022,11 @@ export class OnboardService {
     vendor.bankDetails = existingBankDetails;
 
     const saved = await vendor.save();
-    return this.sanitizeVendor(saved);
+    return {
+      success: true,
+      message: "Bank details updated successfully",
+      data: this.sanitizeVendor(saved),
+    };
   }
 
   async approveVendorProduction(
@@ -941,14 +1035,16 @@ export class OnboardService {
   ) {
     if (approveVendorProductionDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're approving the correct vendor account.",
       );
     }
 
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     vendor.isBusinessVerified = true;
@@ -961,7 +1057,11 @@ export class OnboardService {
     }
 
     const saved = await vendor.save();
-    return this.sanitizeVendor(saved);
+    return {
+      success: true,
+      message: "Vendor approved successfully",
+      data: this.sanitizeVendor(saved),
+    };
   }
 
   private async generateUniqueShopId(): Promise<string> {
@@ -1062,7 +1162,9 @@ export class OnboardService {
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     return this.sanitizeVendor(vendor);
@@ -1072,7 +1174,9 @@ export class OnboardService {
     const vendor = await this.vendorModel.findOne({ userId }).lean().exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     const services = vendor.services || [];
@@ -1218,26 +1322,26 @@ export class OnboardService {
     userId: string,
     uploadDto: UploadBusinessImagesDto,
     files: { businessImages?: Array<{ buffer: Buffer; mimetype: string }> },
-  ): Promise<{ imageUrls: string[] }> {
+  ): Promise<{ success: boolean; message: string; imageUrls: string[] }> {
     // Validate userId before upload starts
     if (uploadDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're uploading for the correct account.",
       );
     }
 
     const images = files.businessImages ?? [];
 
     if (!Array.isArray(images) || images.length !== 2) {
-      throw new BadRequestException(
-        "businessImages must contain exactly 2 files",
-      );
+      throw new BadRequestException("Please upload exactly 2 business images");
     }
 
     // Validate files before upload starts
     for (const file of images) {
       if (!file.buffer || !file.mimetype) {
-        throw new BadRequestException("Invalid file upload");
+        throw new BadRequestException(
+          "Invalid image file. Please ensure the file is a valid image format.",
+        );
       }
     }
 
@@ -1253,9 +1357,13 @@ export class OnboardService {
         uploadedUrls.push(this.r2Service.getPublicUrl(key));
       }
 
-      // Return small response with URLs only
-      return { imageUrls: uploadedUrls };
-    } catch (error) {
+      // Return small response with URLs and success message
+      return {
+        success: true,
+        message: "Business images uploaded successfully",
+        imageUrls: uploadedUrls,
+      };
+    } catch {
       // Cleanup uploaded files on error
       await Promise.all(
         uploadedKeys.map((key) =>
@@ -1265,7 +1373,7 @@ export class OnboardService {
 
       // Re-throw as BadRequestException (not after stream write)
       throw new BadRequestException(
-        `Failed to upload images: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Unable to upload business images. Please check your internet connection and try again.`,
       );
     }
   }
@@ -1283,18 +1391,22 @@ export class OnboardService {
   ): Promise<{ success: boolean; message: string }> {
     if (saveDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're saving for the correct account.",
       );
     }
 
     if (!Array.isArray(saveDto.imageUrls) || saveDto.imageUrls.length !== 2) {
-      throw new BadRequestException("Must provide exactly 2 image URLs");
+      throw new BadRequestException(
+        "Please provide exactly 2 business image URLs",
+      );
     }
 
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     // Delete old images from R2
@@ -1326,7 +1438,7 @@ export class OnboardService {
     userId: string,
     uploadDto: UploadBusinessDocumentDto,
     files: { businessDocument?: Array<{ buffer: Buffer; mimetype: string }> },
-  ): Promise<{ documentUrl: string }> {
+  ): Promise<{ success: boolean; message: string; documentUrl: string }> {
     if (uploadDto.userId !== userId) {
       throw new BadRequestException(
         "userId in request body does not match userId in route parameter",
@@ -1337,13 +1449,15 @@ export class OnboardService {
 
     if (!Array.isArray(docs) || docs.length !== 1) {
       throw new BadRequestException(
-        "businessDocument must contain exactly 1 file",
+        "Please upload exactly 1 business document",
       );
     }
 
     const file = docs[0];
     if (!file.buffer || !file.mimetype) {
-      throw new BadRequestException("Invalid file upload");
+      throw new BadRequestException(
+        "Invalid document file. Please ensure the file is a valid document format.",
+      );
     }
 
     let uploadedKey: string | undefined = undefined;
@@ -1358,16 +1472,20 @@ export class OnboardService {
       );
       const documentUrl = this.r2Service.getPublicUrl(uploadedKey);
 
-      // Return small response with URL only
-      return { documentUrl };
-    } catch (error) {
+      // Return small response with URL and success message
+      return {
+        success: true,
+        message: "Business document uploaded successfully",
+        documentUrl,
+      };
+    } catch {
       // Cleanup on error
       if (uploadedKey) {
         await this.r2Service.deleteObject(uploadedKey).catch(() => undefined);
       }
 
       throw new BadRequestException(
-        `Failed to upload document: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Unable to upload business document. Please check your internet connection and try again.`,
       );
     }
   }
@@ -1385,14 +1503,16 @@ export class OnboardService {
   ): Promise<{ success: boolean; message: string }> {
     if (saveDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're saving for the correct account.",
       );
     }
 
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     // Delete old document from R2
@@ -1422,7 +1542,7 @@ export class OnboardService {
     userId: string,
     uploadDto: UploadServiceImageDto,
     files: { serviceImage?: Array<{ buffer: Buffer; mimetype: string }> },
-  ): Promise<{ imageUrl: string }> {
+  ): Promise<{ success: boolean; message: string; imageUrl: string }> {
     if (uploadDto.userId !== userId) {
       throw new BadRequestException(
         "userId in request body does not match userId in route parameter",
@@ -1431,13 +1551,17 @@ export class OnboardService {
 
     const serviceImageFile = files?.serviceImage?.[0];
     if (!serviceImageFile?.buffer || !serviceImageFile?.mimetype) {
-      throw new BadRequestException("serviceImage file is required");
+      throw new BadRequestException(
+        "Service image is required. Please upload an image file.",
+      );
     }
 
     // Verify service exists before upload (lightweight check)
     const vendor = await this.vendorModel.findOne({ userId }).lean().exec();
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     const existingServices = vendor.services ?? [];
@@ -1448,7 +1572,7 @@ export class OnboardService {
 
     if (!serviceExists) {
       throw new NotFoundException(
-        `Service with serviceId "${uploadDto.serviceId}" not found`,
+        "Service not found. Please check the service ID and try again.",
       );
     }
 
@@ -1464,16 +1588,20 @@ export class OnboardService {
       );
       const imageUrl = this.r2Service.getPublicUrl(uploadedKey);
 
-      // Return small response with URL only
-      return { imageUrl };
-    } catch (error) {
+      // Return small response with URL and success message
+      return {
+        success: true,
+        message: "Service image uploaded successfully",
+        imageUrl,
+      };
+    } catch {
       // Cleanup on error
       if (uploadedKey) {
         await this.r2Service.deleteObject(uploadedKey).catch(() => undefined);
       }
 
       throw new BadRequestException(
-        `Failed to upload service image: ${error instanceof Error ? error.message : "Unknown error"}`,
+        `Unable to upload service image. Please check your internet connection and try again.`,
       );
     }
   }
@@ -1491,14 +1619,16 @@ export class OnboardService {
   ): Promise<{ success: boolean; message: string }> {
     if (saveDto.userId !== userId) {
       throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
+        "User ID mismatch. Please ensure you're saving for the correct account.",
       );
     }
 
     const vendor = await this.vendorModel.findOne({ userId }).exec();
 
     if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+      throw new NotFoundException(
+        "Vendor account not found. Please check your user ID.",
+      );
     }
 
     const existingServices = vendor.services ?? [];
@@ -1508,7 +1638,7 @@ export class OnboardService {
 
     if (serviceIndex === -1) {
       throw new NotFoundException(
-        `Service with serviceId "${saveDto.serviceId}" not found`,
+        "Service not found. Please check the service ID and try again.",
       );
     }
 
