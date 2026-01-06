@@ -3,18 +3,22 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
+  Post,
+  Res,
   UploadedFiles,
   UseInterceptors,
 } from "@nestjs/common";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
+import type { Response } from "express";
 import { OnboardService } from "./onboard.service.js";
 import {
   AddVendorServiceDto,
   AddVendorServiceJsonDto,
 } from "./dto/add-vendor-service.dto.js";
-import { AddServiceImageDto } from "./dto/add-service-image.dto.js";
 import { UpdateVendorServiceDto } from "./dto/update-vendor-service.dto.js";
 import { DeleteVendorServiceDto } from "./dto/delete-vendor-service.dto.js";
 import { AddVendorBankDetailsDto } from "./dto/add-vendor-bank-details.dto.js";
@@ -24,12 +28,16 @@ import { UpdateVendorStaffDto } from "./dto/update-vendor-staff.dto.js";
 import { DeleteVendorStaffDto } from "./dto/delete-vendor-staff.dto.js";
 import { ApproveVendorProductionDto } from "./dto/approve-vendor-production.dto.js";
 import { UpdateVendorDto } from "./dto/update-vendor.dto.js";
-import { UpdateVendorDocumentDto } from "./dto/update-vendor-document.dto.js";
-import { UpdateVendorImagesDto } from "./dto/update-vendor-images.dto.js";
 import { RejectVendorDocumentDto } from "./dto/reject-vendor-document.dto.js";
 import { RejectVendorImagesDto } from "./dto/reject-vendor-images.dto.js";
 import { RejectVendorServicesDto } from "./dto/reject-vendor-services.dto.js";
 import { RejectVendorBankDetailsDto } from "./dto/reject-vendor-bank-details.dto.js";
+import { UploadBusinessImagesDto } from "./dto/upload-business-images.dto.js";
+import { SaveBusinessImagesDto } from "./dto/save-business-images.dto.js";
+import { UploadBusinessDocumentDto } from "./dto/upload-business-document.dto.js";
+import { SaveBusinessDocumentDto } from "./dto/save-business-document.dto.js";
+import { UploadServiceImageDto } from "./dto/upload-service-image.dto.js";
+import { SaveServiceImageDto } from "./dto/save-service-image.dto.js";
 
 @Controller("vendor")
 export class OnboardController {
@@ -43,34 +51,98 @@ export class OnboardController {
     return this.onboardService.updateVendor(userId, updateVendorDto);
   }
 
-  @Patch(":userId/business-images")
+  /**
+   * STEP 1: Upload business images to R2 only
+   * POST method (iOS-safe)
+   * Returns small JSON: { imageUrls: string[] }
+   * No database operations
+   */
+  @Post(":userId/upload-business-images")
+  @HttpCode(HttpStatus.OK)
   @UseInterceptors(
     FileFieldsInterceptor([{ name: "businessImages", maxCount: 2 }]),
   )
-  async updateVendorImages(
+  async uploadBusinessImagesOnly(
     @Param("userId") userId: string,
     @UploadedFiles()
     files: {
       businessImages?: Array<{ buffer: Buffer; mimetype: string }>;
     },
-    @Body() payload: UpdateVendorImagesDto,
+    @Body() payload: UploadBusinessImagesDto,
+    @Res() res: Response,
   ) {
-    return this.onboardService.updateVendorImages(userId, payload, files);
+    const result = await this.onboardService.uploadBusinessImagesOnly(
+      userId,
+      payload,
+      files,
+    );
+    res.json({ success: true, data: result });
+    res.end();
   }
 
-  @Patch(":userId/business-document")
+  /**
+   * STEP 2: Save business image URLs to MongoDB
+   * PATCH method (pure JSON, no file streams)
+   */
+  @Patch(":userId/save-business-images")
+  async saveBusinessImagesMetadata(
+    @Param("userId") userId: string,
+    @Body() payload: SaveBusinessImagesDto,
+    @Res() res: Response,
+  ) {
+    const result = await this.onboardService.saveBusinessImagesMetadata(
+      userId,
+      payload,
+    );
+    res.json({ success: true, data: result });
+    res.end();
+  }
+
+  /**
+   * STEP 1: Upload business document to R2 only
+   * POST method (iOS-safe)
+   * Returns small JSON: { documentUrl: string }
+   * No database operations
+   */
+  @Post(":userId/upload-business-document")
+  @HttpCode(HttpStatus.OK)
   @UseInterceptors(
     FileFieldsInterceptor([{ name: "businessDocument", maxCount: 1 }]),
   )
-  async updateVendorDocument(
+  async uploadBusinessDocumentOnly(
     @Param("userId") userId: string,
     @UploadedFiles()
     files: {
       businessDocument?: Array<{ buffer: Buffer; mimetype: string }>;
     },
-    @Body() payload: UpdateVendorDocumentDto,
+    @Body() payload: UploadBusinessDocumentDto,
+    @Res() res: Response,
   ) {
-    return this.onboardService.updateVendorDocument(userId, payload, files);
+    const result = await this.onboardService.uploadBusinessDocumentOnly(
+      userId,
+      payload,
+      files,
+    );
+    res.json({ success: true, data: result });
+    res.end();
+  }
+
+  /**
+   * STEP 2: Save business document URL to MongoDB
+   * PATCH method (pure JSON, no file streams)
+   */
+  @Patch(":userId/save-business-document")
+  async saveBusinessDocumentMetadata(
+    @Param("userId") userId: string,
+    @Body() payload: SaveBusinessDocumentDto,
+    @Res() res: Response,
+  ) {
+    const result = await this.onboardService.saveBusinessDocumentMetadata(
+      userId,
+      payload,
+    );
+    res.json({ success: true, data: result });
+    res.end();
   }
 
   @Patch(":userId/reject-images")
@@ -122,23 +194,51 @@ export class OnboardController {
     );
   }
 
-  @Patch(":userId/add-service")
+  /**
+   * STEP 1: Upload service image to R2 only
+   * POST method (iOS-safe)
+   * Returns small JSON: { imageUrl: string }
+   * No database operations
+   */
+  @Post(":userId/upload-service-image")
+  @HttpCode(HttpStatus.OK)
   @UseInterceptors(
     FileFieldsInterceptor([{ name: "serviceImage", maxCount: 1 }]),
   )
-  async addServiceImage(
+  async uploadServiceImageOnly(
     @Param("userId") userId: string,
     @UploadedFiles()
     files: {
       serviceImage?: Array<{ buffer: Buffer; mimetype: string }>;
     },
-    @Body() payload: AddServiceImageDto,
+    @Body() payload: UploadServiceImageDto,
+    @Res() res: Response,
   ) {
-    return await this.onboardService.addServiceImage(
+    const result = await this.onboardService.uploadServiceImageOnly(
       userId,
-      payload.serviceId,
+      payload,
       files,
     );
+    res.json({ success: true, data: result });
+    res.end();
+  }
+
+  /**
+   * STEP 2: Save service image URL to MongoDB
+   * PATCH method (pure JSON, no file streams)
+   */
+  @Patch(":userId/save-service-image")
+  async saveServiceImageMetadata(
+    @Param("userId") userId: string,
+    @Body() payload: SaveServiceImageDto,
+    @Res() res: Response,
+  ) {
+    const result = await this.onboardService.saveServiceImageMetadata(
+      userId,
+      payload,
+    );
+    res.json({ success: true, data: result });
+    res.end();
   }
 
   @Patch(":userId/update-service-json")
@@ -150,25 +250,6 @@ export class OnboardController {
       userId,
       payload,
       undefined, // No files for JSON endpoint
-    );
-  }
-
-  @Patch(":userId/update-service")
-  @UseInterceptors(
-    FileFieldsInterceptor([{ name: "serviceImage", maxCount: 1 }]),
-  )
-  async updateServiceImage(
-    @Param("userId") userId: string,
-    @UploadedFiles()
-    files: {
-      serviceImage?: Array<{ buffer: Buffer; mimetype: string }>;
-    },
-    @Body() payload: AddServiceImageDto,
-  ) {
-    return await this.onboardService.addServiceImage(
-      userId,
-      payload.serviceId,
-      files,
     );
   }
 

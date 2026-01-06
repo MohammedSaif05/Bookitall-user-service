@@ -24,12 +24,16 @@ import { UpdateVendorStaffDto } from "./dto/update-vendor-staff.dto.js";
 import { DeleteVendorStaffDto } from "./dto/delete-vendor-staff.dto.js";
 import { ApproveVendorProductionDto } from "./dto/approve-vendor-production.dto.js";
 import { UpdateVendorDto } from "./dto/update-vendor.dto.js";
-import { UpdateVendorDocumentDto } from "./dto/update-vendor-document.dto.js";
-import { UpdateVendorImagesDto } from "./dto/update-vendor-images.dto.js";
 import { RejectVendorDocumentDto } from "./dto/reject-vendor-document.dto.js";
 import { RejectVendorImagesDto } from "./dto/reject-vendor-images.dto.js";
 import { RejectVendorServicesDto } from "./dto/reject-vendor-services.dto.js";
 import { RejectVendorBankDetailsDto } from "./dto/reject-vendor-bank-details.dto.js";
+import { UploadBusinessImagesDto } from "./dto/upload-business-images.dto.js";
+import { SaveBusinessImagesDto } from "./dto/save-business-images.dto.js";
+import { UploadBusinessDocumentDto } from "./dto/upload-business-document.dto.js";
+import { SaveBusinessDocumentDto } from "./dto/save-business-document.dto.js";
+import { UploadServiceImageDto } from "./dto/upload-service-image.dto.js";
+import { SaveServiceImageDto } from "./dto/save-service-image.dto.js";
 
 @Injectable()
 export class OnboardService {
@@ -162,132 +166,6 @@ export class OnboardService {
       .exec();
 
     return vendors.map((vendor) => this.sanitizeVendor(vendor));
-  }
-
-  async updateVendorImages(
-    userId: string,
-    updateVendorImagesDto: UpdateVendorImagesDto,
-    files: { businessImages?: Array<{ buffer: Buffer; mimetype: string }> },
-  ) {
-    if (updateVendorImagesDto.userId !== userId) {
-      throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
-      );
-    }
-
-    const vendor = await this.vendorModel.findOne({ userId }).exec();
-
-    if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
-    }
-
-    const images = files.businessImages ?? [];
-
-    if (!Array.isArray(images) || images.length !== 2) {
-      throw new BadRequestException(
-        "businessImages must contain exactly 2 files",
-      );
-    }
-
-    const newKeys: string[] = [];
-    const newUrls: string[] = [];
-
-    try {
-      for (const [index, file] of images.entries()) {
-        if (!file.buffer || !file.mimetype) {
-          throw new BadRequestException("Invalid file upload");
-        }
-
-        const key = `vendors/${userId}/business-${randomUUID()}-${index}`;
-        await this.r2Service.uploadObject(key, file.buffer, file.mimetype);
-        newKeys.push(key);
-        newUrls.push(this.r2Service.getPublicUrl(key));
-      }
-
-      // Delete previous images if they existed
-      if (Array.isArray(vendor.businessImages)) {
-        for (const url of vendor.businessImages) {
-          const key = this.r2Service.getKeyFromUrl(url);
-          if (key) {
-            await this.r2Service.deleteObject(key).catch(() => undefined);
-          }
-        }
-      }
-
-      vendor.businessImages = newUrls;
-      const saved = await vendor.save();
-
-      return this.sanitizeVendor(saved);
-    } catch (error) {
-      // Rollback newly uploaded images
-      await Promise.all(
-        newKeys.map((key) =>
-          this.r2Service.deleteObject(key).catch(() => undefined),
-        ),
-      );
-
-      throw new BadRequestException(
-        `Failed to upload business images: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
-  }
-
-  async updateVendorDocument(
-    userId: string,
-    updateVendorDocumentDto: UpdateVendorDocumentDto,
-    files: { businessDocument?: Array<{ buffer: Buffer; mimetype: string }> },
-  ) {
-    if (updateVendorDocumentDto.userId !== userId) {
-      throw new BadRequestException(
-        "userId in request body does not match userId in route parameter",
-      );
-    }
-
-    const vendor = await this.vendorModel.findOne({ userId }).exec();
-
-    if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
-    }
-
-    const docs = files.businessDocument ?? [];
-
-    if (!Array.isArray(docs) || docs.length !== 1) {
-      throw new BadRequestException(
-        "businessDocument must contain exactly 1 file",
-      );
-    }
-
-    const file = docs[0];
-    if (!file.buffer || !file.mimetype) {
-      throw new BadRequestException("Invalid file upload");
-    }
-
-    const newKey = `vendors/${userId}/business-document-${randomUUID()}`;
-
-    try {
-      await this.r2Service.uploadObject(newKey, file.buffer, file.mimetype);
-      const newUrl = this.r2Service.getPublicUrl(newKey);
-
-      // Delete previous document if it existed
-      if (vendor.businessDocument) {
-        const prevKey = this.r2Service.getKeyFromUrl(vendor.businessDocument);
-        if (prevKey) {
-          await this.r2Service.deleteObject(prevKey).catch(() => undefined);
-        }
-      }
-
-      vendor.businessDocument = newUrl;
-      const saved = await vendor.save();
-
-      return this.sanitizeVendor(saved);
-    } catch (error) {
-      // Rollback newly uploaded doc on failure
-      await this.r2Service.deleteObject(newKey).catch(() => undefined);
-
-      throw new BadRequestException(
-        `Failed to upload business document: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
   }
 
   async rejectVendorImages(
@@ -749,111 +627,6 @@ export class OnboardService {
 
       throw new BadRequestException(
         `Failed to add service: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
-  }
-
-  async addServiceImage(
-    userId: string,
-    serviceId: string,
-    files?: {
-      serviceImage?: Array<{ buffer: Buffer; mimetype: string }>;
-    },
-  ) {
-    const vendor = await this.vendorModel.findOne({ userId }).exec();
-
-    if (!vendor) {
-      throw new NotFoundException(`Vendor with userId ${userId} not found`);
-    }
-
-    const existingServices = vendor.services ?? [];
-
-    // Find the service by serviceId
-    const serviceIndex = existingServices.findIndex(
-      (svc) => (svc as { serviceId?: string }).serviceId === serviceId,
-    );
-
-    if (serviceIndex === -1) {
-      throw new NotFoundException(
-        `Service with serviceId "${serviceId}" not found`,
-      );
-    }
-
-    const existingService = existingServices[serviceIndex] as {
-      serviceId: string;
-      serviceName: string;
-      serviceDuration: number;
-      serviceCost: number;
-      gender: "male" | "female" | "both";
-      description?: string;
-      category?: string;
-      bufferTime?: number;
-      assignedStaff?: string[];
-      maximumNo?: number;
-      serviceImage?: string;
-      isActive?: boolean;
-    };
-
-    const serviceImageFile = files?.serviceImage?.[0];
-    if (!serviceImageFile?.buffer || !serviceImageFile?.mimetype) {
-      throw new BadRequestException("serviceImage file is required");
-    }
-
-    let newKey: string | undefined = undefined;
-    let uploadedImageUrl: string | undefined = undefined;
-
-    try {
-      // Upload new image
-      newKey = `vendors/${userId}/service-${randomUUID()}`;
-      await this.r2Service.uploadObject(
-        newKey,
-        serviceImageFile.buffer,
-        serviceImageFile.mimetype,
-      );
-      uploadedImageUrl = this.r2Service.getPublicUrl(newKey);
-
-      // Delete old image if it exists
-      if (existingService.serviceImage) {
-        const oldKey = this.r2Service.getKeyFromUrl(
-          existingService.serviceImage,
-        );
-        if (oldKey) {
-          await this.r2Service.deleteObject(oldKey).catch(() => undefined);
-        }
-      }
-
-      // Update only the serviceImage field - explicitly preserve all fields including serviceId
-      const updatedService = {
-        serviceId: existingService.serviceId, // Explicitly preserve serviceId
-        serviceName: existingService.serviceName,
-        serviceDuration: existingService.serviceDuration,
-        serviceCost: existingService.serviceCost,
-        gender: existingService.gender,
-        description: existingService.description,
-        category: existingService.category,
-        bufferTime: existingService.bufferTime,
-        assignedStaff: existingService.assignedStaff,
-        maximumNo: existingService.maximumNo,
-        isActive:
-          existingService.isActive !== undefined
-            ? existingService.isActive
-            : true,
-        serviceImage: uploadedImageUrl, // Update only this field
-      };
-
-      existingServices[serviceIndex] = updatedService;
-      vendor.services = existingServices;
-      const saved = await vendor.save();
-
-      return this.sanitizeVendor(saved);
-    } catch (error) {
-      // Rollback newly uploaded image on error
-      if (newKey) {
-        await this.r2Service.deleteObject(newKey).catch(() => undefined);
-      }
-
-      throw new BadRequestException(
-        `Failed to add service image: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
   }
@@ -1431,5 +1204,363 @@ export class OnboardService {
 
   private escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  // ==================== iOS-SAFE UPLOAD METHODS (UPLOAD ONLY, NO DB) ====================
+
+  /**
+   * STEP 1: Upload business images to R2 only
+   * Returns small JSON with image URLs only
+   * No database operations
+   * iOS-safe: POST method, small response, no exceptions after upload starts
+   */
+  async uploadBusinessImagesOnly(
+    userId: string,
+    uploadDto: UploadBusinessImagesDto,
+    files: { businessImages?: Array<{ buffer: Buffer; mimetype: string }> },
+  ): Promise<{ imageUrls: string[] }> {
+    // Validate userId before upload starts
+    if (uploadDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const images = files.businessImages ?? [];
+
+    if (!Array.isArray(images) || images.length !== 2) {
+      throw new BadRequestException(
+        "businessImages must contain exactly 2 files",
+      );
+    }
+
+    // Validate files before upload starts
+    for (const file of images) {
+      if (!file.buffer || !file.mimetype) {
+        throw new BadRequestException("Invalid file upload");
+      }
+    }
+
+    const uploadedKeys: string[] = [];
+    const uploadedUrls: string[] = [];
+
+    try {
+      // Upload all files to R2
+      for (const [index, file] of images.entries()) {
+        const key = `vendors/${userId}/business-${randomUUID()}-${index}`;
+        await this.r2Service.uploadObject(key, file.buffer, file.mimetype);
+        uploadedKeys.push(key);
+        uploadedUrls.push(this.r2Service.getPublicUrl(key));
+      }
+
+      // Return small response with URLs only
+      return { imageUrls: uploadedUrls };
+    } catch (error) {
+      // Cleanup uploaded files on error
+      await Promise.all(
+        uploadedKeys.map((key) =>
+          this.r2Service.deleteObject(key).catch(() => undefined),
+        ),
+      );
+
+      // Re-throw as BadRequestException (not after stream write)
+      throw new BadRequestException(
+        `Failed to upload images: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
+   * STEP 2: Save business image URLs to MongoDB
+   * Pure JSON request, no file streams
+   *
+   * IMPORTANT: Deletes old images from R2 BEFORE saving new URLs
+   * This prevents orphaned files in cloud storage
+   */
+  async saveBusinessImagesMetadata(
+    userId: string,
+    saveDto: SaveBusinessImagesDto,
+  ): Promise<{ success: boolean; message: string }> {
+    if (saveDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    if (!Array.isArray(saveDto.imageUrls) || saveDto.imageUrls.length !== 2) {
+      throw new BadRequestException("Must provide exactly 2 image URLs");
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    // Delete old images from R2
+    if (Array.isArray(vendor.businessImages)) {
+      for (const url of vendor.businessImages) {
+        const key = this.r2Service.getKeyFromUrl(url);
+        if (key) {
+          await this.r2Service.deleteObject(key).catch(() => undefined);
+        }
+      }
+    }
+
+    // Save new URLs to MongoDB
+    vendor.businessImages = saveDto.imageUrls;
+    await vendor.save();
+
+    return {
+      success: true,
+      message: "Business images saved successfully",
+    };
+  }
+
+  /**
+   * STEP 1: Upload business document to R2 only
+   * Returns small JSON with document URL only
+   * No database operations
+   */
+  async uploadBusinessDocumentOnly(
+    userId: string,
+    uploadDto: UploadBusinessDocumentDto,
+    files: { businessDocument?: Array<{ buffer: Buffer; mimetype: string }> },
+  ): Promise<{ documentUrl: string }> {
+    if (uploadDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const docs = files.businessDocument ?? [];
+
+    if (!Array.isArray(docs) || docs.length !== 1) {
+      throw new BadRequestException(
+        "businessDocument must contain exactly 1 file",
+      );
+    }
+
+    const file = docs[0];
+    if (!file.buffer || !file.mimetype) {
+      throw new BadRequestException("Invalid file upload");
+    }
+
+    let uploadedKey: string | undefined = undefined;
+
+    try {
+      // Upload to R2
+      uploadedKey = `vendors/${userId}/business-document-${randomUUID()}`;
+      await this.r2Service.uploadObject(
+        uploadedKey,
+        file.buffer,
+        file.mimetype,
+      );
+      const documentUrl = this.r2Service.getPublicUrl(uploadedKey);
+
+      // Return small response with URL only
+      return { documentUrl };
+    } catch (error) {
+      // Cleanup on error
+      if (uploadedKey) {
+        await this.r2Service.deleteObject(uploadedKey).catch(() => undefined);
+      }
+
+      throw new BadRequestException(
+        `Failed to upload document: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
+   * STEP 2: Save business document URL to MongoDB
+   * Pure JSON request, no file streams
+   *
+   * IMPORTANT: Deletes old document from R2 BEFORE saving new URL
+   * This prevents orphaned files in cloud storage
+   */
+  async saveBusinessDocumentMetadata(
+    userId: string,
+    saveDto: SaveBusinessDocumentDto,
+  ): Promise<{ success: boolean; message: string }> {
+    if (saveDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    // Delete old document from R2
+    if (vendor.businessDocument) {
+      const oldKey = this.r2Service.getKeyFromUrl(vendor.businessDocument);
+      if (oldKey) {
+        await this.r2Service.deleteObject(oldKey).catch(() => undefined);
+      }
+    }
+
+    // Save new URL to MongoDB
+    vendor.businessDocument = saveDto.documentUrl;
+    await vendor.save();
+
+    return {
+      success: true,
+      message: "Business document saved successfully",
+    };
+  }
+
+  /**
+   * STEP 1: Upload service image to R2 only
+   * Returns small JSON with image URL only
+   * No database operations
+   */
+  async uploadServiceImageOnly(
+    userId: string,
+    uploadDto: UploadServiceImageDto,
+    files: { serviceImage?: Array<{ buffer: Buffer; mimetype: string }> },
+  ): Promise<{ imageUrl: string }> {
+    if (uploadDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const serviceImageFile = files?.serviceImage?.[0];
+    if (!serviceImageFile?.buffer || !serviceImageFile?.mimetype) {
+      throw new BadRequestException("serviceImage file is required");
+    }
+
+    // Verify service exists before upload (lightweight check)
+    const vendor = await this.vendorModel.findOne({ userId }).lean().exec();
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const existingServices = vendor.services ?? [];
+    const serviceExists = existingServices.some(
+      (svc) =>
+        (svc as { serviceId?: string }).serviceId === uploadDto.serviceId,
+    );
+
+    if (!serviceExists) {
+      throw new NotFoundException(
+        `Service with serviceId "${uploadDto.serviceId}" not found`,
+      );
+    }
+
+    let uploadedKey: string | undefined = undefined;
+
+    try {
+      // Upload to R2
+      uploadedKey = `vendors/${userId}/service-${randomUUID()}`;
+      await this.r2Service.uploadObject(
+        uploadedKey,
+        serviceImageFile.buffer,
+        serviceImageFile.mimetype,
+      );
+      const imageUrl = this.r2Service.getPublicUrl(uploadedKey);
+
+      // Return small response with URL only
+      return { imageUrl };
+    } catch (error) {
+      // Cleanup on error
+      if (uploadedKey) {
+        await this.r2Service.deleteObject(uploadedKey).catch(() => undefined);
+      }
+
+      throw new BadRequestException(
+        `Failed to upload service image: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
+   * STEP 2: Save service image URL to MongoDB
+   * Pure JSON request, no file streams
+   *
+   * IMPORTANT: Deletes old service image from R2 BEFORE saving new URL
+   * This prevents orphaned files in cloud storage
+   */
+  async saveServiceImageMetadata(
+    userId: string,
+    saveDto: SaveServiceImageDto,
+  ): Promise<{ success: boolean; message: string }> {
+    if (saveDto.userId !== userId) {
+      throw new BadRequestException(
+        "userId in request body does not match userId in route parameter",
+      );
+    }
+
+    const vendor = await this.vendorModel.findOne({ userId }).exec();
+
+    if (!vendor) {
+      throw new NotFoundException(`Vendor with userId ${userId} not found`);
+    }
+
+    const existingServices = vendor.services ?? [];
+    const serviceIndex = existingServices.findIndex(
+      (svc) => (svc as { serviceId?: string }).serviceId === saveDto.serviceId,
+    );
+
+    if (serviceIndex === -1) {
+      throw new NotFoundException(
+        `Service with serviceId "${saveDto.serviceId}" not found`,
+      );
+    }
+
+    const existingService = existingServices[serviceIndex] as {
+      serviceId: string;
+      serviceName: string;
+      serviceDuration: number;
+      serviceCost: number;
+      gender: "male" | "female" | "both";
+      description?: string;
+      category?: string;
+      bufferTime?: number;
+      assignedStaff?: string[];
+      maximumNo?: number;
+      serviceImage?: string;
+      isActive?: boolean;
+    };
+
+    // Delete old image from R2
+    if (existingService.serviceImage) {
+      const oldKey = this.r2Service.getKeyFromUrl(existingService.serviceImage);
+      if (oldKey) {
+        await this.r2Service.deleteObject(oldKey).catch(() => undefined);
+      }
+    }
+
+    // Update service with new image URL
+    const updatedService = {
+      serviceId: existingService.serviceId,
+      serviceName: existingService.serviceName,
+      serviceDuration: existingService.serviceDuration,
+      serviceCost: existingService.serviceCost,
+      gender: existingService.gender,
+      description: existingService.description,
+      category: existingService.category,
+      bufferTime: existingService.bufferTime,
+      assignedStaff: existingService.assignedStaff,
+      maximumNo: existingService.maximumNo,
+      isActive:
+        existingService.isActive !== undefined
+          ? existingService.isActive
+          : true,
+      serviceImage: saveDto.imageUrl,
+    };
+
+    existingServices[serviceIndex] = updatedService;
+    vendor.services = existingServices;
+    await vendor.save();
+
+    return {
+      success: true,
+      message: "Service image saved successfully",
+    };
   }
 }

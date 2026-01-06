@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsString } from "class-validator";
 
-export class AddServiceImageDto {
+export class UploadBusinessImagesDto {
   @IsString()
   @IsNotEmpty()
-  serviceId!: string;
+  userId!: string;
 }

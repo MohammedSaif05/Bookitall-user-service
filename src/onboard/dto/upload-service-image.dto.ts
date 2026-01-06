@@ -1,7 +1,11 @@
 import { IsNotEmpty, IsString } from "class-validator";
 
-export class UpdateVendorDocumentDto {
+export class UploadServiceImageDto {
   @IsString()
   @IsNotEmpty()
   userId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  serviceId!: string;
 }
