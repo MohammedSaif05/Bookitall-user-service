@@ -682,12 +682,12 @@ export class OnboardService {
 
       existingServices.push(newService);
       vendor.services = existingServices;
-      const saved = await vendor.save();
+      await vendor.save();
 
       return {
         success: true,
         message: "Service added successfully",
-        data: this.sanitizeVendor(saved),
+        data: newService,
       };
     } catch {
       // Rollback newly uploaded image on error
