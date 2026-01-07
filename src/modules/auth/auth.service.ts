@@ -26,34 +26,25 @@ export class AuthService {
 
   sendOtp(mobileNo: string) {
     if (!this.mobilePattern.test(mobileNo)) {
-      throw new BadRequestException(
-        "Please provide a valid 10-digit mobile number.",
-      );
+      throw new BadRequestException("mobileNo must be a 10 digit number");
     }
 
     return {
-      success: true,
-      message: "OTP sent successfully",
+      message: "otp sent successfully",
     };
   }
 
   async verifyOtp(mobileNo: string, otp: string, userType: UserType) {
     if (!this.mobilePattern.test(mobileNo)) {
-      throw new BadRequestException(
-        "Please provide a valid 10-digit mobile number.",
-      );
+      throw new BadRequestException("mobileNo must be a 10 digit number");
     }
 
     if (!USER_TYPES.includes(userType)) {
-      throw new BadRequestException(
-        "Invalid user type. Please select either 'vendor' or 'customer'.",
-      );
+      throw new BadRequestException("userType must be vendor or customer");
     }
 
     if (otp !== this.demoOtp) {
-      throw new BadRequestException(
-        "Invalid OTP. Please check the code and try again.",
-      );
+      throw new BadRequestException("invalid otp");
     }
 
     const existingUser = await this.userModel.findOne({ mobileNo }).exec();
@@ -65,8 +56,7 @@ export class AuthService {
       }
       await this.syncRoleRecords(existingUser.userId, mobileNo, userType);
       return {
-        success: true,
-        message: "OTP verified successfully",
+        message: "otp verified",
         userId: existingUser.userId,
       };
     }
@@ -74,8 +64,7 @@ export class AuthService {
     const userId = await this.createUserWithRoleRecord(mobileNo, userType);
 
     return {
-      success: true,
-      message: "OTP verified successfully",
+      message: "otp verified",
       userId,
     };
   }
@@ -97,7 +86,7 @@ export class AuthService {
     } catch {
       await this.userModel.deleteOne({ _id: user._id }).exec();
       throw new InternalServerErrorException(
-        "Unable to create account. Please try again later.",
+        "failed to create role record for user",
       );
     }
 
@@ -125,23 +114,18 @@ export class AuthService {
     const user = await this.userModel.findOne({ userId }).exec();
 
     if (!user) {
-      throw new NotFoundException(
-        "User account not found. Please check your user ID.",
-      );
+      throw new NotFoundException(`User with userId ${userId} not found`);
     }
 
     if (user.userType !== "customer") {
-      throw new BadRequestException(
-        "This account is not a customer account. Please use the correct account type.",
-      );
+      throw new BadRequestException("user is not a customer");
     }
 
     user.customerName = customerName;
     await user.save();
 
     return {
-      success: true,
-      message: "Customer details updated successfully",
+      message: "customer details updated",
       userId: user.userId,
       customerName: user.customerName,
     };

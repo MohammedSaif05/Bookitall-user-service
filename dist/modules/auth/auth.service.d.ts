@@ -9,18 +9,15 @@ export declare class AuthService {
     private readonly mobilePattern;
     constructor(userModel: Model<UserDocument>, vendorModel: Model<VendorDocument>);
     sendOtp(mobileNo: string): {
-        success: boolean;
         message: string;
     };
     verifyOtp(mobileNo: string, otp: string, userType: UserType): Promise<{
-        success: boolean;
         message: string;
         userId: string;
     }>;
     private createUserWithRoleRecord;
     private syncRoleRecords;
     updateCustomerDetails(userId: string, customerName: string): Promise<{
-        success: boolean;
         message: string;
         userId: string;
         customerName: string;
