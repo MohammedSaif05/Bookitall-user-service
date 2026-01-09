@@ -1,5 +1,32 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document } from "mongoose";
+import { Document, Schema as MongooseSchema } from "mongoose";
+
+const ContactSchema = new MongooseSchema(
+  {
+    mobileNo: { type: String },
+    alternatePhone: { type: String },
+    email: { type: String },
+  },
+  { _id: false },
+);
+
+const AddressSchema = new MongooseSchema(
+  {
+    address: { type: String },
+    city: { type: String },
+    landmark: { type: String },
+    pincode: { type: String },
+  },
+  { _id: false },
+);
+
+const LocationSchema = new MongooseSchema(
+  {
+    type: { type: String, enum: ["Point"], default: "Point" },
+    coordinates: { type: [Number] },
+  },
+  { _id: false },
+);
 
 @Schema({
   timestamps: true,
@@ -27,29 +54,14 @@ export class Business {
   @Prop({ type: [String], default: [] })
   documents!: string[];
 
-  @Prop({
-    type: {
-      mobileNo: { type: String },
-      alternatePhone: { type: String },
-      email: { type: String },
-    },
-    required: true,
-  })
+  @Prop({ type: ContactSchema, required: true })
   contact!: {
     mobileNo: string;
     alternatePhone?: string;
     email?: string;
   };
 
-  @Prop({
-    type: {
-      address: { type: String },
-      city: { type: String },
-      landmark: { type: String },
-      pincode: { type: String },
-    },
-    required: true,
-  })
+  @Prop({ type: AddressSchema, required: true })
   address!: {
     address: string;
     city: string;
@@ -57,13 +69,7 @@ export class Business {
     pincode: string;
   };
 
-  @Prop({
-    type: {
-      type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number] },
-    },
-    required: true,
-  })
+  @Prop({ type: LocationSchema, required: true })
   location!: {
     type: "Point";
     coordinates: [number, number]; // [longitude, latitude]

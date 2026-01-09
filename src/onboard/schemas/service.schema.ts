@@ -1,5 +1,13 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document, Types } from "mongoose";
+import { Document, Types, Schema as MongooseSchema } from "mongoose";
+
+const LocationSchema = new MongooseSchema(
+  {
+    type: { type: String, enum: ["Point"], default: "Point" },
+    coordinates: { type: [Number] },
+  },
+  { _id: false },
+);
 
 @Schema({
   timestamps: true,
@@ -39,13 +47,7 @@ export class Service {
   @Prop({ type: String })
   serviceImage?: string;
 
-  @Prop({
-    type: {
-      type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number] },
-    },
-    required: true,
-  })
+  @Prop({ type: LocationSchema, required: true })
   location!: {
     type: "Point";
     coordinates: [number, number]; // [longitude, latitude]

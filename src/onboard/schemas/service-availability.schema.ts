@@ -1,5 +1,13 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document, Types } from "mongoose";
+import { Document, Types, Schema as MongooseSchema } from "mongoose";
+
+const BreakSchema = new MongooseSchema(
+  {
+    start: { type: String },
+    end: { type: String },
+  },
+  { _id: false },
+);
 
 @Schema({
   timestamps: true,
@@ -24,15 +32,7 @@ export class ServiceAvailability {
   @Prop({ type: String, required: true })
   endTime!: string; // Format: "HH:MM"
 
-  @Prop({
-    type: [
-      {
-        start: { type: String },
-        end: { type: String },
-      },
-    ],
-    default: [],
-  })
+  @Prop({ type: [BreakSchema], default: [] })
   breaks!: Array<{ start: string; end: string }>;
 }
 
