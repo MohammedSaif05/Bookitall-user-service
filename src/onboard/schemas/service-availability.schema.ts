@@ -27,8 +27,8 @@ export class ServiceAvailability {
   @Prop({
     type: [
       {
-        start: { type: String, required: true },
-        end: { type: String, required: true },
+        start: { type: String },
+        end: { type: String },
       },
     ],
     default: [],

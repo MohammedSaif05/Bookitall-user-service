@@ -29,7 +29,7 @@ export class Business {
 
   @Prop({
     type: {
-      mobileNo: { type: String, required: true },
+      mobileNo: { type: String },
       alternatePhone: { type: String },
       email: { type: String },
     },
@@ -43,10 +43,10 @@ export class Business {
 
   @Prop({
     type: {
-      address: { type: String, required: true },
-      city: { type: String, required: true },
+      address: { type: String },
+      city: { type: String },
       landmark: { type: String },
-      pincode: { type: String, required: true },
+      pincode: { type: String },
     },
     required: true,
   })
@@ -60,7 +60,7 @@ export class Business {
   @Prop({
     type: {
       type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number], required: true },
+      coordinates: { type: [Number] },
     },
     required: true,
   })

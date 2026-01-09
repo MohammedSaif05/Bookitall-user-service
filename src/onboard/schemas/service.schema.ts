@@ -42,7 +42,7 @@ export class Service {
   @Prop({
     type: {
       type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number], required: true },
+      coordinates: { type: [Number] },
     },
     required: true,
   })
