@@ -1120,6 +1120,7 @@ export class OnboardService {
             startTime: day.start_time,
             endTime: day.end_time,
             breaks,
+            isActive: true,
           });
 
           availabilityDocuments.push(availability);
@@ -1158,6 +1159,7 @@ export class OnboardService {
             startTime,
             endTime,
             breaks,
+            isActive: true,
           });
 
           availabilityDocuments.push(availability);

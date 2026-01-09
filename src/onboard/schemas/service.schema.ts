@@ -12,6 +12,7 @@ const LocationSchema = new MongooseSchema(
 @Schema({
   timestamps: true,
   collection: "services",
+  versionKey: false,
 })
 export class Service {
   @Prop({ required: true })

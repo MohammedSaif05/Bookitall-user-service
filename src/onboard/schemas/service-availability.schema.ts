@@ -12,6 +12,7 @@ const BreakSchema = new MongooseSchema(
 @Schema({
   timestamps: true,
   collection: "service_availability",
+  versionKey: false,
 })
 export class ServiceAvailability {
   @Prop({ type: Types.ObjectId, required: true, ref: "Service" })
@@ -34,8 +35,18 @@ export class ServiceAvailability {
 
   @Prop({ type: [BreakSchema], default: [] })
   breaks!: Array<{ start: string; end: string }>;
+
+  @Prop({ type: Boolean, default: true })
+  isActive!: boolean;
 }
 
 export type ServiceAvailabilityDocument = ServiceAvailability & Document;
 export const ServiceAvailabilitySchema =
   SchemaFactory.createForClass(ServiceAvailability);
+
+// Create indexes
+ServiceAvailabilitySchema.index(
+  { serviceId: 1, dayOfWeek: 1 },
+  { unique: true },
+);
+ServiceAvailabilitySchema.index({ businessId: 1 });

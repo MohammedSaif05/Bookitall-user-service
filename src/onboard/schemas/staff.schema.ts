@@ -4,6 +4,7 @@ import { Document, Types } from "mongoose";
 @Schema({
   timestamps: { createdAt: true, updatedAt: false },
   collection: "staff",
+  versionKey: false,
 })
 export class Staff {
   @Prop({ required: true })
