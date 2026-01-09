@@ -966,11 +966,26 @@ export class OnboardService {
       throw new NotFoundException(`Vendor with userId ${userId} not found`);
     }
 
-    // Validate that vendor has days configured
-    if (!vendor.days || vendor.days.length === 0) {
-      throw new BadRequestException(
-        "Vendor must have days configured before approval",
-      );
+    // Validate availability configuration based on differentTimingsEachDay
+    if (vendor.differentTimingsEachDay === true) {
+      // Case A: differentTimingsEachDay = true - must have days array
+      if (!vendor.days || vendor.days.length === 0) {
+        throw new BadRequestException(
+          "Vendor must have days configured when differentTimingsEachDay is true",
+        );
+      }
+    } else {
+      // Case B: differentTimingsEachDay = false - must have workingDays, startTime, endTime
+      if (!vendor.workingDays || vendor.workingDays.length === 0) {
+        throw new BadRequestException(
+          "Vendor must have workingDays configured when differentTimingsEachDay is false",
+        );
+      }
+      if (!vendor.startTime || !vendor.endTime) {
+        throw new BadRequestException(
+          "Vendor must have startTime and endTime configured when differentTimingsEachDay is false",
+        );
+      }
     }
 
     // Validate required fields for business creation
@@ -1077,29 +1092,76 @@ export class OnboardService {
       await this.staffModel.insertMany(staffDocuments);
     }
 
-    // Create service_availability documents (one per service per day)
+    // Create service_availability documents
     const availabilityDocuments: ServiceAvailabilityDocument[] = [];
-    for (const serviceDoc of serviceDocuments) {
-      for (const day of vendor.days) {
-        const dayOfWeek = this.mapDayNameToNumber(day.day);
 
-        // Format breaks from {break_start, break_end} to {start, end}
-        const breaks = (day.breaks || []).map((breakItem) => ({
+    if (vendor.differentTimingsEachDay === true) {
+      // Case A: differentTimingsEachDay = true
+      // Create ONE document per service per entry in days[]
+      // vendor.days is already validated above
+      if (!vendor.days) {
+        throw new BadRequestException("days array is required");
+      }
+      for (const serviceDoc of serviceDocuments) {
+        for (const day of vendor.days) {
+          const dayOfWeek = this.mapDayNameToNumber(day.day);
+
+          // Format breaks from {break_start, break_end} to {start, end}
+          const breaks = (day.breaks || []).map((breakItem) => ({
+            start: breakItem.break_start,
+            end: breakItem.break_end,
+          }));
+
+          const availability = new this.serviceAvailabilityModel({
+            serviceId: serviceDoc._id,
+            businessId: savedBusiness._id,
+            vendorId: vendor.userId,
+            dayOfWeek,
+            startTime: day.start_time,
+            endTime: day.end_time,
+            breaks,
+          });
+
+          availabilityDocuments.push(availability);
+        }
+      }
+    } else {
+      // Case B: differentTimingsEachDay = false
+      // Create ONE document per service per entry in workingDays[], all using the SAME time window
+      // vendor.workingDays, vendor.startTime, vendor.endTime are already validated above
+      if (!vendor.workingDays || !vendor.startTime || !vendor.endTime) {
+        throw new BadRequestException(
+          "workingDays, startTime, and endTime are required",
+        );
+      }
+      // Extract to const for TypeScript type narrowing
+      const workingDays = vendor.workingDays;
+      const startTime = vendor.startTime;
+      const endTime = vendor.endTime;
+
+      // Format breaks from {break_start, break_end} to {start, end}
+      const breaks =
+        vendor.breaks?.map((breakItem) => ({
           start: breakItem.break_start,
           end: breakItem.break_end,
-        }));
+        })) || [];
 
-        const availability = new this.serviceAvailabilityModel({
-          serviceId: serviceDoc._id,
-          businessId: savedBusiness._id,
-          vendorId: vendor.userId,
-          dayOfWeek,
-          startTime: day.start_time,
-          endTime: day.end_time,
-          breaks,
-        });
+      for (const serviceDoc of serviceDocuments) {
+        for (const workingDay of workingDays) {
+          const dayOfWeek = this.mapDayNameToNumber(workingDay);
 
-        availabilityDocuments.push(availability);
+          const availability = new this.serviceAvailabilityModel({
+            serviceId: serviceDoc._id,
+            businessId: savedBusiness._id,
+            vendorId: vendor.userId,
+            dayOfWeek,
+            startTime,
+            endTime,
+            breaks,
+          });
+
+          availabilityDocuments.push(availability);
+        }
       }
     }
 
