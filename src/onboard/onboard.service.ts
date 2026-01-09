@@ -1307,6 +1307,133 @@ export class OnboardService {
     return this.sanitizeVendor(vendor);
   }
 
+  async getVerifiedVendorView(userId: string) {
+    // Find business by vendorId
+    const business = await this.businessModel
+      .findOne({ vendorId: userId })
+      .lean()
+      .exec();
+
+    if (!business) {
+      throw new NotFoundException(
+        `Business for vendor with userId ${userId} not found. Vendor may not be approved yet.`,
+      );
+    }
+
+    // Find all services for this business
+    const services = await this.serviceModel
+      .find({ businessId: business._id, isActive: true })
+      .lean()
+      .exec();
+
+    // Find all staff for this business
+    const staff = await this.staffModel
+      .find({ businessId: business._id })
+      .lean()
+      .exec();
+
+    // Get service IDs
+    const serviceIds = services.map((s) => s._id);
+
+    // Find all service availability for these services
+    const serviceAvailabilities = await this.serviceAvailabilityModel
+      .find({
+        serviceId: { $in: serviceIds },
+        isActive: true,
+      })
+      .lean()
+      .exec();
+
+    // Map services with their availability
+    const servicesWithAvailability = services.map((service) => {
+      const serviceAvailability = serviceAvailabilities
+        .filter((sa) => sa.serviceId.toString() === service._id.toString())
+        .map((sa) => ({
+          dayOfWeek: sa.dayOfWeek,
+          startTime: sa.startTime,
+          endTime: sa.endTime,
+          breaks: sa.breaks || [],
+        }));
+
+      return {
+        serviceId: this.toStringId(service._id),
+        serviceName: service.serviceName,
+        serviceDuration: service.durationInMinutes,
+        serviceCost: service.price,
+        gender: service.gender,
+        description: service.description,
+        category: service.category,
+        bufferTime: service.bufferTimeInMinutes,
+        assignedStaff: [], // Not stored in production collections
+        maximumNo: service.maxBookingsPerSlot,
+        serviceImage: service.serviceImage,
+        isActive: service.isActive,
+        availability: serviceAvailability,
+      };
+    });
+
+    // Format staff
+    const formattedStaff = staff.map((s) => ({
+      name: s.name,
+      isActive: s.isActive,
+    }));
+
+    // Build response similar to vendor format
+    // business is a lean document (plain object)
+    const businessPlain = business as unknown as {
+      _id: unknown;
+      vendorId: string;
+      businessName: string;
+      businessCategory: string;
+      businessType: string;
+      ownerName: string;
+      address?: {
+        address?: string;
+        city?: string;
+        landmark?: string;
+        pincode?: string;
+      };
+      location?: { coordinates?: [number, number] };
+      contact?: { mobileNo?: string; alternatePhone?: string; email?: string };
+      images?: string[];
+      documents?: string[];
+      isActive: boolean;
+      isDiscoverable: boolean;
+      createdAt?: Date;
+      updatedAt?: Date;
+    };
+
+    return {
+      _id: this.toStringId(businessPlain._id),
+      userId: businessPlain.vendorId,
+      businessName: businessPlain.businessName,
+      businessCategory: businessPlain.businessCategory,
+      businessType: businessPlain.businessType,
+      ownerName: businessPlain.ownerName,
+      address: businessPlain.address?.address,
+      city: businessPlain.address?.city,
+      landmark: businessPlain.address?.landmark,
+      pincode: businessPlain.address?.pincode,
+      latitude: businessPlain.location?.coordinates?.[1], // latitude is second in [longitude, latitude]
+      longitude: businessPlain.location?.coordinates?.[0], // longitude is first
+      mobileNo: businessPlain.contact?.mobileNo,
+      alternatePhoneNumber: businessPlain.contact?.alternatePhone,
+      businessEmail: businessPlain.contact?.email,
+      businessImages: businessPlain.images || [],
+      businessDocument: businessPlain.documents?.[0] || null,
+      images: businessPlain.images || [],
+      documents: businessPlain.documents || [],
+      contact: businessPlain.contact,
+      location: businessPlain.location,
+      isActive: businessPlain.isActive,
+      isDiscoverable: businessPlain.isDiscoverable,
+      services: servicesWithAvailability,
+      staff: formattedStaff,
+      createdAt: businessPlain.createdAt,
+      updatedAt: businessPlain.updatedAt,
+    };
+  }
+
   async getVendorServices(userId: string) {
     const vendor = await this.vendorModel.findOne({ userId }).lean().exec();
 

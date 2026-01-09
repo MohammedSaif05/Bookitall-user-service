@@ -30,6 +30,11 @@ export class VendorsController {
     return this.onboardService.getVendorsByLocation(location);
   }
 
+  @Get("verified-view/:userId")
+  getVerifiedVendorView(@Param("userId") userId: string) {
+    return this.onboardService.getVerifiedVendorView(userId);
+  }
+
   @Get(":userId/services")
   getVendorServices(@Param("userId") userId: string) {
     return this.onboardService.getVendorServices(userId);
