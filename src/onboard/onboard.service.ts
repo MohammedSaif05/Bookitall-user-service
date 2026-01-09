@@ -11,6 +11,13 @@ import {
   Vendor,
   VendorDocument,
 } from "../modules/auth/schemas/vendor.schema.js";
+import { Business, BusinessDocument } from "./schemas/business.schema.js";
+import { Service, ServiceDocument } from "./schemas/service.schema.js";
+import { Staff, StaffDocument } from "./schemas/staff.schema.js";
+import {
+  ServiceAvailability,
+  ServiceAvailabilityDocument,
+} from "./schemas/service-availability.schema.js";
 import {
   AddVendorServiceDto,
   VendorServiceItemDto,
@@ -40,6 +47,14 @@ export class OnboardService {
   constructor(
     @InjectModel(Vendor.name)
     private readonly vendorModel: Model<VendorDocument>,
+    @InjectModel(Business.name)
+    private readonly businessModel: Model<BusinessDocument>,
+    @InjectModel(Service.name)
+    private readonly serviceModel: Model<ServiceDocument>,
+    @InjectModel(Staff.name)
+    private readonly staffModel: Model<StaffDocument>,
+    @InjectModel(ServiceAvailability.name)
+    private readonly serviceAvailabilityModel: Model<ServiceAvailabilityDocument>,
     private readonly r2Service: R2Service,
   ) {}
 
@@ -951,17 +966,177 @@ export class OnboardService {
       throw new NotFoundException(`Vendor with userId ${userId} not found`);
     }
 
+    // Validate that vendor has days configured
+    if (!vendor.days || vendor.days.length === 0) {
+      throw new BadRequestException(
+        "Vendor must have days configured before approval",
+      );
+    }
+
+    // Validate required fields for business creation
+    if (
+      !vendor.businessName ||
+      !vendor.businessCategory ||
+      !vendor.businessType ||
+      !vendor.ownerName ||
+      !vendor.address ||
+      !vendor.city ||
+      !vendor.pincode ||
+      vendor.latitude === undefined ||
+      vendor.longitude === undefined
+    ) {
+      throw new BadRequestException(
+        "Vendor must have all required business information before approval",
+      );
+    }
+
+    // Validate services exist
+    if (!vendor.services || vendor.services.length === 0) {
+      throw new BadRequestException(
+        "Vendor must have at least one service before approval",
+      );
+    }
+
+    // Update vendor approval flags
     vendor.isBusinessVerified = true;
     vendor.isBusinessImageApproved = true;
     vendor.isBusinessDocumentApproved = true;
     vendor.imageRejectMessage = undefined;
     vendor.documentRejectMessage = undefined;
-    if (!vendor.shopId) {
-      vendor.shopId = await this.generateUniqueShopId();
+
+    // Create business document
+    const business = new this.businessModel({
+      vendorId: vendor.userId,
+      businessName: vendor.businessName,
+      businessCategory: vendor.businessCategory,
+      businessType: vendor.businessType,
+      ownerName: vendor.ownerName,
+      images: vendor.businessImages || [],
+      documents: vendor.businessDocument ? [vendor.businessDocument] : [],
+      contact: {
+        mobileNo: vendor.mobileNo,
+        alternatePhone: vendor.alternatePhoneNumber,
+        email: vendor.businessEmail,
+      },
+      address: {
+        address: vendor.address,
+        city: vendor.city,
+        landmark: vendor.landmark,
+        pincode: vendor.pincode,
+      },
+      location: {
+        type: "Point",
+        coordinates: [vendor.longitude, vendor.latitude], // [longitude, latitude]
+      },
+      isActive: true,
+      isDiscoverable: true,
+    });
+
+    const savedBusiness = await business.save();
+
+    // Create service documents
+    const serviceDocuments: ServiceDocument[] = [];
+    for (const vendorService of vendor.services) {
+      if (vendorService.isActive === false) continue; // Skip inactive services
+
+      const service = new this.serviceModel({
+        vendorId: vendor.userId,
+        businessId: savedBusiness._id,
+        serviceName: vendorService.serviceName,
+        description: vendorService.description,
+        durationInMinutes: vendorService.serviceDuration,
+        bufferTimeInMinutes: vendorService.bufferTime || 0,
+        price: vendorService.serviceCost,
+        category: vendorService.category,
+        gender: vendorService.gender,
+        maxBookingsPerSlot: vendorService.maximumNo || 1,
+        serviceImage: vendorService.serviceImage,
+        location: {
+          type: "Point",
+          coordinates: [vendor.longitude, vendor.latitude], // [longitude, latitude]
+        },
+        isActive: vendorService.isActive ?? true,
+        isDiscoverable: true,
+      });
+
+      const savedService = await service.save();
+      serviceDocuments.push(savedService);
     }
 
+    // Create staff documents (only if staff exists)
+    if (vendor.staff && vendor.staff.length > 0) {
+      const staffDocuments = vendor.staff.map((staffMember) => {
+        return new this.staffModel({
+          vendorId: vendor.userId,
+          businessId: savedBusiness._id,
+          name: staffMember.name,
+          isActive: staffMember.isActive !== false,
+        });
+      });
+
+      await this.staffModel.insertMany(staffDocuments);
+    }
+
+    // Create service_availability documents (one per service per day)
+    const availabilityDocuments: ServiceAvailabilityDocument[] = [];
+    for (const serviceDoc of serviceDocuments) {
+      for (const day of vendor.days) {
+        const dayOfWeek = this.mapDayNameToNumber(day.day);
+
+        // Format breaks from {break_start, break_end} to {start, end}
+        const breaks = (day.breaks || []).map((breakItem) => ({
+          start: breakItem.break_start,
+          end: breakItem.break_end,
+        }));
+
+        const availability = new this.serviceAvailabilityModel({
+          serviceId: serviceDoc._id,
+          businessId: savedBusiness._id,
+          vendorId: vendor.userId,
+          dayOfWeek,
+          startTime: day.start_time,
+          endTime: day.end_time,
+          breaks,
+        });
+
+        availabilityDocuments.push(availability);
+      }
+    }
+
+    if (availabilityDocuments.length > 0) {
+      await this.serviceAvailabilityModel.insertMany(availabilityDocuments);
+    }
+
+    // Save vendor
     const saved = await vendor.save();
     return this.sanitizeVendor(saved);
+  }
+
+  /**
+   * Maps day name (full English name) to dayOfWeek number
+   * Sunday = 0, Monday = 1, ..., Saturday = 6
+   */
+  private mapDayNameToNumber(dayName: string): number {
+    const dayMap: Record<string, number> = {
+      Sunday: 0,
+      Monday: 1,
+      Tuesday: 2,
+      Wednesday: 3,
+      Thursday: 4,
+      Friday: 5,
+      Saturday: 6,
+    };
+
+    const normalizedDay = dayName.trim();
+    const dayNumber = dayMap[normalizedDay];
+
+    if (dayNumber === undefined) {
+      throw new BadRequestException(
+        `Invalid day name: ${dayName}. Must be a full English day name (Sunday-Saturday)`,
+      );
+    }
+
+    return dayNumber;
   }
 
   private async generateUniqueShopId(): Promise<string> {
