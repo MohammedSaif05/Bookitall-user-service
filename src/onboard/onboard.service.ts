@@ -1421,8 +1421,6 @@ export class OnboardService {
       businessEmail: businessPlain.contact?.email,
       businessImages: businessPlain.images || [],
       businessDocument: businessPlain.documents?.[0] || null,
-      images: businessPlain.images || [],
-      documents: businessPlain.documents || [],
       contact: businessPlain.contact,
       location: businessPlain.location,
       isActive: businessPlain.isActive,
