@@ -1364,19 +1364,34 @@ export class OnboardService {
           breaks: sa.breaks || [],
         }));
 
+      const servicePlain = service as unknown as {
+        _id: unknown;
+        serviceName: string;
+        durationInMinutes: number;
+        price: number;
+        gender?: string;
+        description?: string;
+        category?: string;
+        bufferTimeInMinutes: number;
+        assignedStaff?: string[];
+        maxBookingsPerSlot: number;
+        serviceImage?: string;
+        isActive: boolean;
+      };
+
       return {
         serviceId: this.toStringId(service._id),
-        serviceName: service.serviceName,
-        serviceDuration: service.durationInMinutes,
-        serviceCost: service.price,
-        gender: service.gender,
-        description: service.description,
-        category: service.category,
-        bufferTime: service.bufferTimeInMinutes,
-        assignedStaff: [], // Not stored in production collections
-        maximumNo: service.maxBookingsPerSlot,
-        serviceImage: service.serviceImage,
-        isActive: service.isActive,
+        serviceName: servicePlain.serviceName,
+        serviceDuration: servicePlain.durationInMinutes,
+        serviceCost: servicePlain.price,
+        gender: servicePlain.gender,
+        description: servicePlain.description,
+        category: servicePlain.category,
+        bufferTime: servicePlain.bufferTimeInMinutes,
+        assignedStaff: servicePlain.assignedStaff || [],
+        maximumNo: servicePlain.maxBookingsPerSlot,
+        serviceImage: servicePlain.serviceImage,
+        isActive: servicePlain.isActive,
         availability: serviceAvailability,
       };
     });
