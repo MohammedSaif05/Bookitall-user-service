@@ -2021,11 +2021,12 @@ export class OnboardService {
       );
     }
 
-    const vendorId = (business as { vendorId: string }).vendorId;
+    const businessDoc = business as { _id: unknown; vendorId: string };
+    const vendorId = businessDoc.vendorId;
 
     // Create service approval document
-    // Convert businessId string to ObjectId
-    const businessIdObjectId = new Types.ObjectId(businessId);
+    // Use the _id from the businesses collection (already ObjectId)
+    const businessIdObjectId = businessDoc._id as Types.ObjectId;
 
     const serviceApproval = new this.serviceApprovalModel({
       vendorId,
