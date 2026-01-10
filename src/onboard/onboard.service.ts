@@ -2076,7 +2076,7 @@ export class OnboardService {
         );
       }
 
-      // Step 2: Fetch business document
+      // Step 2: Fetch business document (for location)
       const business = await this.businessModel
         .findById(approval.businessId)
         .session(session)
@@ -2091,6 +2091,22 @@ export class OnboardService {
 
       const businessPlain = business as unknown as {
         location?: { coordinates?: [number, number] };
+      };
+
+      // Step 2b: Fetch vendor document (for timing rules)
+      const vendor = await this.vendorModel
+        .findOne({ userId: approval.vendorId })
+        .session(session)
+        .lean()
+        .exec();
+
+      if (!vendor) {
+        throw new NotFoundException(
+          `Vendor with userId "${approval.vendorId}" not found`,
+        );
+      }
+
+      const vendorPlain = vendor as unknown as {
         differentTimingsEachDay?: boolean;
         days?: Array<{
           day: string;
@@ -2130,15 +2146,15 @@ export class OnboardService {
       // Step 4: Create service_availability documents
       const availabilityDocuments: ServiceAvailabilityDocument[] = [];
 
-      if (businessPlain.differentTimingsEachDay === true) {
+      if (vendorPlain.differentTimingsEachDay === true) {
         // Case A: Use days array
-        if (!businessPlain.days || businessPlain.days.length === 0) {
+        if (!vendorPlain.days || vendorPlain.days.length === 0) {
           throw new BadRequestException(
-            "Business must have days configured when differentTimingsEachDay is true",
+            "Vendor must have days configured when differentTimingsEachDay is true",
           );
         }
 
-        for (const day of businessPlain.days) {
+        for (const day of vendorPlain.days) {
           const dayOfWeek = this.mapDayNameToNumber(day.day);
 
           const breaks = (day.breaks || []).map((breakItem) => ({
@@ -2161,30 +2177,27 @@ export class OnboardService {
         }
       } else {
         // Case B: Use workingDays with same time window
-        if (
-          !businessPlain.workingDays ||
-          businessPlain.workingDays.length === 0
-        ) {
+        if (!vendorPlain.workingDays || vendorPlain.workingDays.length === 0) {
           throw new BadRequestException(
-            "Business must have workingDays configured when differentTimingsEachDay is false",
+            "Vendor must have workingDays configured when differentTimingsEachDay is false",
           );
         }
-        if (!businessPlain.startTime || !businessPlain.endTime) {
+        if (!vendorPlain.startTime || !vendorPlain.endTime) {
           throw new BadRequestException(
-            "Business must have startTime and endTime configured when differentTimingsEachDay is false",
+            "Vendor must have startTime and endTime configured when differentTimingsEachDay is false",
           );
         }
 
-        const startTime = businessPlain.startTime;
-        const endTime = businessPlain.endTime;
+        const startTime = vendorPlain.startTime;
+        const endTime = vendorPlain.endTime;
 
         const breaks =
-          businessPlain.breaks?.map((breakItem) => ({
+          vendorPlain.breaks?.map((breakItem) => ({
             start: breakItem.break_start,
             end: breakItem.break_end,
           })) || [];
 
-        for (const workingDay of businessPlain.workingDays) {
+        for (const workingDay of vendorPlain.workingDays) {
           const dayOfWeek = this.mapDayNameToNumber(workingDay);
 
           const availability = new this.serviceAvailabilityModel({
