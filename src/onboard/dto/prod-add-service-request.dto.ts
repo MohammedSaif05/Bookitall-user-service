@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsEnum,
   IsUrl,
+  IsArray,
 } from "class-validator";
 
 const GENDERS = ["male", "female", "both"] as const;
@@ -54,4 +55,9 @@ export class ProdAddServiceRequestDto {
   @IsUrl()
   @IsNotEmpty()
   serviceImage!: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  assignedStaff?: string[];
 }

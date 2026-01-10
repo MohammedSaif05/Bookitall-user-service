@@ -2041,6 +2041,7 @@ export class OnboardService {
       gender: saveDto.gender,
       maxBookingsPerSlot: saveDto.maxBookingsPerSlot || 1,
       serviceImage: saveDto.serviceImage,
+      assignedStaff: saveDto.assignedStaff ?? [],
       status: "pending",
     });
 
@@ -2138,6 +2139,7 @@ export class OnboardService {
         gender: approval.gender,
         maxBookingsPerSlot: approval.maxBookingsPerSlot,
         serviceImage: approval.serviceImage,
+        assignedStaff: approval.assignedStaff ?? [],
         location: {
           type: "Point",
           coordinates: businessPlain.location?.coordinates || [0, 0],

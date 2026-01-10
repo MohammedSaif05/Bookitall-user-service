@@ -40,6 +40,9 @@ export class ServiceApproval {
   @Prop({ type: String })
   serviceImage?: string;
 
+  @Prop({ type: [String], default: [] })
+  assignedStaff!: string[];
+
   @Prop({
     type: String,
     enum: ["pending", "approved", "rejected"],
