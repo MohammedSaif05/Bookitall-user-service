@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Res,
   UploadedFiles,
   UseInterceptors,
@@ -38,6 +39,8 @@ import { UploadBusinessDocumentDto } from "./dto/upload-business-document.dto.js
 import { SaveBusinessDocumentDto } from "./dto/save-business-document.dto.js";
 import { UploadServiceImageDto } from "./dto/upload-service-image.dto.js";
 import { SaveServiceImageDto } from "./dto/save-service-image.dto.js";
+import { ProdUploadServiceImageDto } from "./dto/prod-upload-service-image.dto.js";
+import { ProdAddServiceRequestDto } from "./dto/prod-add-service-request.dto.js";
 
 @Controller("vendor")
 export class OnboardController {
@@ -312,5 +315,104 @@ export class OnboardController {
     @Body() payload: UpdateVendorBankDetailsDto,
   ) {
     return this.onboardService.updateVendorBankDetails(userId, payload);
+  }
+
+  /**
+   * PRODUCTION APIs - Service Approval Flow
+   */
+
+  /**
+   * STEP 1: Upload service image to R2 (for production service request)
+   * POST method (multipart/form-data)
+   */
+  @Post(":businessId/prod-upload-service-image")
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: "serviceImage", maxCount: 1 }]),
+  )
+  async prodUploadServiceImage(
+    @Param("businessId") businessId: string,
+    @UploadedFiles()
+    files: {
+      serviceImage?: Array<{ buffer: Buffer; mimetype: string }>;
+    },
+    @Body() payload: ProdUploadServiceImageDto,
+    @Res() res: Response,
+  ) {
+    const result = await this.onboardService.prodUploadServiceImage(
+      businessId,
+      payload,
+      files,
+    );
+    res.json({ success: true, data: result });
+    res.end();
+  }
+
+  /**
+   * STEP 2: Save service request metadata to services_approval
+   * PATCH method (pure JSON, no file streams)
+   */
+  @Patch(":businessId/prod-save-service-request")
+  async prodSaveServiceRequest(
+    @Param("businessId") businessId: string,
+    @Body() payload: ProdAddServiceRequestDto,
+    @Res() res: Response,
+  ) {
+    const result = await this.onboardService.prodSaveServiceRequest(
+      businessId,
+      payload,
+    );
+    res.json({ success: true, data: result });
+    res.end();
+  }
+
+  /**
+   * Approve service request and create service + availability
+   * POST method (uses MongoDB transaction)
+   */
+  @Post(":serviceApprovalId/prod-approve-service")
+  async prodApproveService(
+    @Param("serviceApprovalId") serviceApprovalId: string,
+    @Res() res: Response,
+  ) {
+    const result =
+      await this.onboardService.prodApproveService(serviceApprovalId);
+    res.json({ success: true, data: result });
+    res.end();
+  }
+
+  /**
+   * Reject service request and delete image from R2
+   * POST method
+   */
+  @Post(":serviceApprovalId/prod-reject-service")
+  async prodRejectService(
+    @Param("serviceApprovalId") serviceApprovalId: string,
+    @Res() res: Response,
+  ) {
+    const result =
+      await this.onboardService.prodRejectService(serviceApprovalId);
+    res.json({ success: true, data: result });
+    res.end();
+  }
+
+  /**
+   * Get list of service approvals with optional filtering
+   * GET method with query parameters
+   */
+  @Get("service-approvals")
+  async getServiceApprovals(
+    @Res() res: Response,
+    @Query("status") status?: string,
+    @Query("vendorId") vendorId?: string,
+    @Query("businessId") businessId?: string,
+  ) {
+    const result = await this.onboardService.getServiceApprovals({
+      status,
+      vendorId,
+      businessId,
+    });
+    res.json({ success: true, data: result });
+    res.end();
   }
 }

@@ -19,6 +19,10 @@ import {
   ServiceAvailabilityDocument,
 } from "./schemas/service-availability.schema.js";
 import {
+  ServiceApproval,
+  ServiceApprovalDocument,
+} from "./schemas/service-approval.schema.js";
+import {
   AddVendorServiceDto,
   VendorServiceItemDto,
 } from "./dto/add-vendor-service.dto.js";
@@ -41,6 +45,8 @@ import { UploadBusinessDocumentDto } from "./dto/upload-business-document.dto.js
 import { SaveBusinessDocumentDto } from "./dto/save-business-document.dto.js";
 import { UploadServiceImageDto } from "./dto/upload-service-image.dto.js";
 import { SaveServiceImageDto } from "./dto/save-service-image.dto.js";
+import { ProdUploadServiceImageDto } from "./dto/prod-upload-service-image.dto.js";
+import { ProdAddServiceRequestDto } from "./dto/prod-add-service-request.dto.js";
 
 @Injectable()
 export class OnboardService {
@@ -55,6 +61,8 @@ export class OnboardService {
     private readonly staffModel: Model<StaffDocument>,
     @InjectModel(ServiceAvailability.name)
     private readonly serviceAvailabilityModel: Model<ServiceAvailabilityDocument>,
+    @InjectModel(ServiceApproval.name)
+    private readonly serviceApprovalModel: Model<ServiceApprovalDocument>,
     private readonly r2Service: R2Service,
   ) {}
 
@@ -1926,5 +1934,388 @@ export class OnboardService {
       success: true,
       message: "Service image saved successfully",
     };
+  }
+
+  /**
+   * PRODUCTION APIs - Service Approval Flow
+   */
+
+  /**
+   * STEP 1: Upload service image to R2 (for production service request)
+   */
+  async prodUploadServiceImage(
+    businessId: string,
+    uploadDto: ProdUploadServiceImageDto,
+    files: { serviceImage?: Array<{ buffer: Buffer; mimetype: string }> },
+  ): Promise<{ imageUrl: string }> {
+    if (uploadDto.businessId !== businessId) {
+      throw new BadRequestException(
+        "businessId in request body does not match businessId in route parameter",
+      );
+    }
+
+    const serviceImageFile = files?.serviceImage?.[0];
+    if (!serviceImageFile?.buffer || !serviceImageFile?.mimetype) {
+      throw new BadRequestException("serviceImage file is required");
+    }
+
+    // Validate business exists before upload
+    const business = await this.businessModel
+      .findOne({ _id: businessId })
+      .lean()
+      .exec();
+    if (!business) {
+      throw new NotFoundException(
+        `Business with businessId "${businessId}" not found`,
+      );
+    }
+
+    let uploadedKey: string | undefined = undefined;
+
+    try {
+      // Upload to R2 - use vendorId from business for folder structure
+      const vendorId = (business as { vendorId: string }).vendorId;
+      uploadedKey = `vendors/${vendorId}/service-${randomUUID()}`;
+      await this.r2Service.uploadObject(
+        uploadedKey,
+        serviceImageFile.buffer,
+        serviceImageFile.mimetype,
+      );
+      const imageUrl = this.r2Service.getPublicUrl(uploadedKey);
+
+      // Return small response with URL only
+      return { imageUrl };
+    } catch (error) {
+      // Cleanup on error
+      if (uploadedKey) {
+        await this.r2Service.deleteObject(uploadedKey).catch(() => undefined);
+      }
+
+      throw new BadRequestException(
+        `Failed to upload service image: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
+   * STEP 2: Save service request metadata to services_approval
+   */
+  async prodSaveServiceRequest(
+    businessId: string,
+    saveDto: ProdAddServiceRequestDto,
+  ): Promise<{ success: boolean; message: string; approvalId: string }> {
+    if (saveDto.businessId !== businessId) {
+      throw new BadRequestException(
+        "businessId in request body does not match businessId in route parameter",
+      );
+    }
+
+    // Validate business exists
+    const business = await this.businessModel
+      .findOne({ _id: businessId })
+      .lean()
+      .exec();
+    if (!business) {
+      throw new NotFoundException(
+        `Business with businessId "${businessId}" not found`,
+      );
+    }
+
+    const vendorId = (business as { vendorId: string }).vendorId;
+
+    // Create service approval document
+    const serviceApproval = new this.serviceApprovalModel({
+      vendorId,
+      businessId,
+      serviceName: saveDto.serviceName,
+      description: saveDto.description,
+      durationInMinutes: saveDto.durationInMinutes,
+      bufferTimeInMinutes: saveDto.bufferTimeInMinutes || 0,
+      price: saveDto.price,
+      category: saveDto.category,
+      gender: saveDto.gender,
+      maxBookingsPerSlot: saveDto.maxBookingsPerSlot || 1,
+      serviceImage: saveDto.serviceImage,
+      status: "pending",
+    });
+
+    const saved = await serviceApproval.save();
+
+    return {
+      success: true,
+      message: "Service request saved successfully",
+      approvalId: saved._id.toString(),
+    };
+  }
+
+  /**
+   * Approve service request and create service + availability (with transaction)
+   */
+  async prodApproveService(
+    serviceApprovalId: string,
+  ): Promise<{ success: boolean; message: string; serviceId: string }> {
+    const session = await this.businessModel.db.startSession();
+    session.startTransaction();
+
+    try {
+      // Step 1: Fetch service approval
+      const approval = await this.serviceApprovalModel
+        .findById(serviceApprovalId)
+        .session(session)
+        .exec();
+
+      if (!approval) {
+        throw new NotFoundException(
+          `Service approval with id "${serviceApprovalId}" not found`,
+        );
+      }
+
+      if (approval.status !== "pending") {
+        throw new BadRequestException(
+          `Service approval is already ${approval.status}. Cannot approve again.`,
+        );
+      }
+
+      // Step 2: Fetch business document
+      const business = await this.businessModel
+        .findById(approval.businessId)
+        .session(session)
+        .lean()
+        .exec();
+
+      if (!business) {
+        throw new NotFoundException(
+          `Business with id "${approval.businessId.toString()}" not found`,
+        );
+      }
+
+      const businessPlain = business as unknown as {
+        location?: { coordinates?: [number, number] };
+        differentTimingsEachDay?: boolean;
+        days?: Array<{
+          day: string;
+          start_time: string;
+          end_time: string;
+          breaks?: Array<{ break_start: string; break_end: string }>;
+        }>;
+        workingDays?: string[];
+        startTime?: string;
+        endTime?: string;
+        breaks?: Array<{ break_start: string; break_end: string }>;
+      };
+
+      // Step 3: Create service document
+      const service = new this.serviceModel({
+        vendorId: approval.vendorId,
+        businessId: approval.businessId,
+        serviceName: approval.serviceName,
+        description: approval.description,
+        durationInMinutes: approval.durationInMinutes,
+        bufferTimeInMinutes: approval.bufferTimeInMinutes,
+        price: approval.price,
+        category: approval.category,
+        gender: approval.gender,
+        maxBookingsPerSlot: approval.maxBookingsPerSlot,
+        serviceImage: approval.serviceImage,
+        location: {
+          type: "Point",
+          coordinates: businessPlain.location?.coordinates || [0, 0],
+        },
+        isActive: true,
+        isDiscoverable: true,
+      });
+
+      const savedService = await service.save({ session });
+
+      // Step 4: Create service_availability documents
+      const availabilityDocuments: ServiceAvailabilityDocument[] = [];
+
+      if (businessPlain.differentTimingsEachDay === true) {
+        // Case A: Use days array
+        if (!businessPlain.days || businessPlain.days.length === 0) {
+          throw new BadRequestException(
+            "Business must have days configured when differentTimingsEachDay is true",
+          );
+        }
+
+        for (const day of businessPlain.days) {
+          const dayOfWeek = this.mapDayNameToNumber(day.day);
+
+          const breaks = (day.breaks || []).map((breakItem) => ({
+            start: breakItem.break_start,
+            end: breakItem.break_end,
+          }));
+
+          const availability = new this.serviceAvailabilityModel({
+            serviceId: savedService._id,
+            businessId: approval.businessId,
+            vendorId: approval.vendorId,
+            dayOfWeek,
+            startTime: day.start_time,
+            endTime: day.end_time,
+            breaks,
+            isActive: true,
+          });
+
+          availabilityDocuments.push(availability);
+        }
+      } else {
+        // Case B: Use workingDays with same time window
+        if (
+          !businessPlain.workingDays ||
+          businessPlain.workingDays.length === 0
+        ) {
+          throw new BadRequestException(
+            "Business must have workingDays configured when differentTimingsEachDay is false",
+          );
+        }
+        if (!businessPlain.startTime || !businessPlain.endTime) {
+          throw new BadRequestException(
+            "Business must have startTime and endTime configured when differentTimingsEachDay is false",
+          );
+        }
+
+        const startTime = businessPlain.startTime;
+        const endTime = businessPlain.endTime;
+
+        const breaks =
+          businessPlain.breaks?.map((breakItem) => ({
+            start: breakItem.break_start,
+            end: breakItem.break_end,
+          })) || [];
+
+        for (const workingDay of businessPlain.workingDays) {
+          const dayOfWeek = this.mapDayNameToNumber(workingDay);
+
+          const availability = new this.serviceAvailabilityModel({
+            serviceId: savedService._id,
+            businessId: approval.businessId,
+            vendorId: approval.vendorId,
+            dayOfWeek,
+            startTime,
+            endTime,
+            breaks,
+            isActive: true,
+          });
+
+          availabilityDocuments.push(availability);
+        }
+      }
+
+      // Save all availability documents
+      if (availabilityDocuments.length > 0) {
+        await this.serviceAvailabilityModel.insertMany(availabilityDocuments, {
+          session,
+        });
+      }
+
+      // Step 5: Delete approval document (keep R2 image)
+      await this.serviceApprovalModel
+        .findByIdAndDelete(serviceApprovalId)
+        .session(session)
+        .exec();
+
+      // Commit transaction
+      await session.commitTransaction();
+
+      return {
+        success: true,
+        message: "Service approved and created successfully",
+        serviceId: savedService._id.toString(),
+      };
+    } catch (error) {
+      // Rollback transaction on error
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  /**
+   * Reject service request and delete image from R2
+   */
+  async prodRejectService(
+    serviceApprovalId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    // Fetch approval document
+    const approval = await this.serviceApprovalModel
+      .findById(serviceApprovalId)
+      .exec();
+
+    if (!approval) {
+      throw new NotFoundException(
+        `Service approval with id "${serviceApprovalId}" not found`,
+      );
+    }
+
+    // Extract key from serviceImage URL and delete from R2
+    if (approval.serviceImage) {
+      try {
+        const key = this.r2Service.getKeyFromUrl(approval.serviceImage);
+        if (key) {
+          await this.r2Service.deleteObject(key);
+        }
+      } catch (error) {
+        // Log error but continue with deletion of approval document
+        console.error(
+          `Failed to delete service image from R2: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+      }
+    }
+
+    // Delete approval document
+    await this.serviceApprovalModel.findByIdAndDelete(serviceApprovalId).exec();
+
+    return {
+      success: true,
+      message: "Service request rejected and image deleted successfully",
+    };
+  }
+
+  /**
+   * Get list of service approvals with optional filtering
+   */
+  async getServiceApprovals(filters: {
+    status?: string;
+    vendorId?: string;
+    businessId?: string;
+  }): Promise<Array<Record<string, unknown>>> {
+    const query: Record<string, unknown> = {};
+
+    if (filters.status) {
+      if (!["pending", "approved", "rejected"].includes(filters.status)) {
+        throw new BadRequestException(
+          `Invalid status. Must be one of: pending, approved, rejected`,
+        );
+      }
+      query.status = filters.status;
+    }
+
+    if (filters.vendorId) {
+      query.vendorId = filters.vendorId;
+    }
+
+    if (filters.businessId) {
+      query.businessId = filters.businessId;
+    }
+
+    const approvals = await this.serviceApprovalModel
+      .find(query)
+      .sort({ createdAt: -1 }) // Most recent first (using the most important index)
+      .lean()
+      .exec();
+
+    // Convert to plain objects and sanitize _id
+    return approvals.map((approval) => {
+      const approvalPlain = approval as unknown as {
+        _id: unknown;
+        [key: string]: unknown;
+      };
+      return {
+        ...approvalPlain,
+        _id: this.toStringId(approvalPlain._id),
+      };
+    });
   }
 }

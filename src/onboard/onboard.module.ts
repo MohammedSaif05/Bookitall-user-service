@@ -12,6 +12,10 @@ import {
   ServiceAvailability,
   ServiceAvailabilitySchema,
 } from "./schemas/service-availability.schema.js";
+import {
+  ServiceApproval,
+  ServiceApprovalSchema,
+} from "./schemas/service-approval.schema.js";
 
 @Module({
   imports: [
@@ -21,6 +25,7 @@ import {
       { name: Service.name, schema: ServiceSchema },
       { name: Staff.name, schema: StaffSchema },
       { name: ServiceAvailability.name, schema: ServiceAvailabilitySchema },
+      { name: ServiceApproval.name, schema: ServiceApprovalSchema },
     ]),
     StorageModule,
   ],
