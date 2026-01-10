@@ -1074,6 +1074,7 @@ export class OnboardService {
         gender: vendorService.gender,
         maxBookingsPerSlot: vendorService.maximumNo || 1,
         serviceImage: vendorService.serviceImage,
+        assignedStaff: vendorService.assignedStaff || [],
         location: {
           type: "Point",
           coordinates: [vendor.longitude, vendor.latitude], // [longitude, latitude]

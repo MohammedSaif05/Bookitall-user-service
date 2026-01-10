@@ -48,6 +48,9 @@ export class Service {
   @Prop({ type: String })
   serviceImage?: string;
 
+  @Prop({ type: [String], default: [] })
+  assignedStaff!: string[];
+
   @Prop({ type: LocationSchema, required: true })
   location!: {
     type: "Point";
