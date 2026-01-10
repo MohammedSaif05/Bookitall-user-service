@@ -5,7 +5,7 @@ import {
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { randomBytes, randomUUID } from "node:crypto";
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import { R2Service } from "../common/storage/r2.service.js";
 import {
   Vendor,
@@ -2024,9 +2024,12 @@ export class OnboardService {
     const vendorId = (business as { vendorId: string }).vendorId;
 
     // Create service approval document
+    // Convert businessId string to ObjectId
+    const businessIdObjectId = new Types.ObjectId(businessId);
+
     const serviceApproval = new this.serviceApprovalModel({
       vendorId,
-      businessId,
+      businessId: businessIdObjectId,
       serviceName: saveDto.serviceName,
       description: saveDto.description,
       durationInMinutes: saveDto.durationInMinutes,
