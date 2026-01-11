@@ -22,6 +22,7 @@ import {
   ServiceApproval,
   ServiceApprovalDocument,
 } from "./schemas/service-approval.schema.js";
+import { Category, CategoryDocument } from "./schemas/category.schema.js";
 import {
   AddVendorServiceDto,
   VendorServiceItemDto,
@@ -47,6 +48,8 @@ import { UploadServiceImageDto } from "./dto/upload-service-image.dto.js";
 import { SaveServiceImageDto } from "./dto/save-service-image.dto.js";
 import { ProdUploadServiceImageDto } from "./dto/prod-upload-service-image.dto.js";
 import { ProdAddServiceRequestDto } from "./dto/prod-add-service-request.dto.js";
+import { ProdAddCategoryDto } from "./dto/prod-add-category.dto.js";
+import { ProdUpdateCategoryDto } from "./dto/prod-update-category.dto.js";
 
 @Injectable()
 export class OnboardService {
@@ -63,6 +66,8 @@ export class OnboardService {
     private readonly serviceAvailabilityModel: Model<ServiceAvailabilityDocument>,
     @InjectModel(ServiceApproval.name)
     private readonly serviceApprovalModel: Model<ServiceApprovalDocument>,
+    @InjectModel(Category.name)
+    private readonly categoryModel: Model<CategoryDocument>,
     private readonly r2Service: R2Service,
   ) {}
 
@@ -2350,6 +2355,184 @@ export class OnboardService {
       return {
         ...approvalPlain,
         _id: this.toStringId(approvalPlain._id),
+      };
+    });
+  }
+
+  /**
+   * CATEGORY MANAGEMENT APIs
+   */
+
+  /**
+   * Generate slug from name
+   */
+  private generateSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "") // Remove special characters
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
+      .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+  }
+
+  /**
+   * Generate unique slug (adds number suffix if slug exists)
+   */
+  private async generateUniqueSlug(baseSlug: string): Promise<string> {
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (true) {
+      const existing = await this.categoryModel.findOne({ slug }).exec();
+      if (!existing) {
+        return slug;
+      }
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+  }
+
+  /**
+   * STEP 1: Upload category image to R2
+   */
+  async prodUploadCategoryImage(files: {
+    image?: Array<{ buffer: Buffer; mimetype: string }>;
+  }): Promise<{ imageUrl: string }> {
+    const imageFile = files?.image?.[0];
+    if (!imageFile?.buffer || !imageFile?.mimetype) {
+      throw new BadRequestException("image file is required");
+    }
+
+    let uploadedKey: string | undefined = undefined;
+
+    try {
+      // Upload to R2 - use categories folder
+      uploadedKey = `categories/category-${randomUUID()}`;
+      await this.r2Service.uploadObject(
+        uploadedKey,
+        imageFile.buffer,
+        imageFile.mimetype,
+      );
+      const imageUrl = this.r2Service.getPublicUrl(uploadedKey);
+
+      return { imageUrl };
+    } catch (error) {
+      // Cleanup on error
+      if (uploadedKey) {
+        await this.r2Service.deleteObject(uploadedKey).catch(() => undefined);
+      }
+
+      throw new BadRequestException(
+        `Failed to upload category image: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  }
+
+  /**
+   * STEP 2: Save category metadata
+   */
+  async prodAddCategory(
+    saveDto: ProdAddCategoryDto,
+  ): Promise<{ success: boolean; message: string; categoryId: string }> {
+    // Generate slug from name
+    const baseSlug = this.generateSlug(saveDto.name);
+    const uniqueSlug = await this.generateUniqueSlug(baseSlug);
+
+    // Create category document
+    const category = new this.categoryModel({
+      slug: uniqueSlug,
+      name: saveDto.name,
+      image: saveDto.image,
+      order: saveDto.order,
+      isActive: true, // Default isActive = true
+    });
+
+    const saved = await category.save();
+
+    return {
+      success: true,
+      message: "Category saved successfully",
+      categoryId: saved._id.toString(),
+    };
+  }
+
+  /**
+   * Update category (slug does NOT change even if name changes)
+   */
+  async prodUpdateCategory(
+    categoryId: string,
+    updateDto: ProdUpdateCategoryDto,
+  ): Promise<{ success: boolean; message: string }> {
+    const category = await this.categoryModel.findById(categoryId).exec();
+
+    if (!category) {
+      throw new NotFoundException(`Category with id "${categoryId}" not found`);
+    }
+
+    // Update fields (slug stays the same - it's identity)
+    if (updateDto.name !== undefined) {
+      category.name = updateDto.name;
+    }
+    if (updateDto.image !== undefined) {
+      category.image = updateDto.image;
+    }
+    if (updateDto.order !== undefined) {
+      category.order = updateDto.order;
+    }
+    if (updateDto.isActive !== undefined) {
+      category.isActive = updateDto.isActive;
+    }
+
+    await category.save();
+
+    return {
+      success: true,
+      message: "Category updated successfully",
+    };
+  }
+
+  /**
+   * Soft delete category (set isActive = false)
+   */
+  async prodDeleteCategory(
+    categoryId: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const category = await this.categoryModel.findById(categoryId).exec();
+
+    if (!category) {
+      throw new NotFoundException(`Category with id "${categoryId}" not found`);
+    }
+
+    // Soft delete: set isActive = false
+    category.isActive = false;
+    await category.save();
+
+    return {
+      success: true,
+      message: "Category deleted successfully",
+    };
+  }
+
+  /**
+   * Get active categories (sorted by order ASC)
+   */
+  async getCategories(): Promise<Array<Record<string, unknown>>> {
+    const categories = await this.categoryModel
+      .find({ isActive: true })
+      .sort({ order: 1 }) // Sort by order ASC
+      .lean()
+      .exec();
+
+    // Convert to plain objects and sanitize _id
+    return categories.map((category) => {
+      const categoryPlain = category as unknown as {
+        _id: unknown;
+        [key: string]: unknown;
+      };
+      return {
+        ...categoryPlain,
+        _id: this.toStringId(categoryPlain._id),
       };
     });
   }

@@ -16,6 +16,9 @@ import {
   ServiceApproval,
   ServiceApprovalSchema,
 } from "./schemas/service-approval.schema.js";
+import { Category, CategorySchema } from "./schemas/category.schema.js";
+import { CategoriesController } from "./categories.controller.js";
+import { CategoriesPublicController } from "./categories-public.controller.js";
 
 @Module({
   imports: [
@@ -26,10 +29,16 @@ import {
       { name: Staff.name, schema: StaffSchema },
       { name: ServiceAvailability.name, schema: ServiceAvailabilitySchema },
       { name: ServiceApproval.name, schema: ServiceApprovalSchema },
+      { name: Category.name, schema: CategorySchema },
     ]),
     StorageModule,
   ],
-  controllers: [OnboardController, VendorsController],
+  controllers: [
+    OnboardController,
+    VendorsController,
+    CategoriesController,
+    CategoriesPublicController,
+  ],
   providers: [OnboardService],
 })
 export class OnboardModule {}
