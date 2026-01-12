@@ -19,6 +19,26 @@ export class User {
   @Prop({ required: false })
   customerName?: string;
 
+  @Prop({
+    type: [
+      {
+        deviceId: { type: String, required: true },
+        platform: { type: String, required: true },
+        fcmToken: { type: String, required: true },
+        appVersion: { type: String, required: true },
+        lastActiveAt: { type: Date, required: true },
+      },
+    ],
+    default: [],
+  })
+  devices?: Array<{
+    deviceId: string;
+    platform: string;
+    fcmToken: string;
+    appVersion: string;
+    lastActiveAt: Date;
+  }>;
+
   createdAt?: Date;
   updatedAt?: Date;
 }

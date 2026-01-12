@@ -10,6 +10,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { OnboardModule } from "./onboard/onboard.module";
 import { StorageModule } from "./common/storage/storage.module";
 import { VerificationModule } from "./modules/verification/verification.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { VerificationModule } from "./modules/verification/verification.module";
     OnboardModule,
     StorageModule,
     VerificationModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
