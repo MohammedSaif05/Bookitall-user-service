@@ -1,10 +1,15 @@
-import { Body, Controller, Param, Patch } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch } from "@nestjs/common";
 import { AuthService } from "./auth.service.js";
 import { UpdateCustomerDetailsDto } from "./dto/update-customer-details.dto.js";
 
 @Controller("customer")
 export class CustomerController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get("get-details/:userId")
+  async getCustomerDetails(@Param("userId") userId: string) {
+    return this.authService.getCustomerDetails(userId);
+  }
 
   @Patch("update-details/:userId")
   async updateCustomerDetails(

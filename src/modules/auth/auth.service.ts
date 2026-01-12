@@ -131,6 +131,23 @@ export class AuthService {
     };
   }
 
+  async getCustomerDetails(userId: string) {
+    const user = await this.userModel.findOne({ userId }).exec();
+
+    if (!user) {
+      throw new NotFoundException(`User with userId ${userId} not found`);
+    }
+
+    return {
+      userId: user.userId,
+      mobileNo: user.mobileNo,
+      userType: user.userType,
+      customerName: user.customerName,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
   private async generateUniqueUserId(): Promise<string> {
     while (true) {
       const userId = randomBytes(10).toString("base64url");
