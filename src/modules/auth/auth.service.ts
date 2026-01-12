@@ -132,19 +132,28 @@ export class AuthService {
   }
 
   async getCustomerDetails(userId: string) {
-    const user = await this.userModel.findOne({ userId }).exec();
+    const user = await this.userModel.findOne({ userId }).lean().exec();
 
     if (!user) {
       throw new NotFoundException(`User with userId ${userId} not found`);
     }
 
+    const userPlain = user as {
+      userId: string;
+      mobileNo: string;
+      userType: string;
+      customerName?: string;
+      createdAt?: Date;
+      updatedAt?: Date;
+    };
+
     return {
-      userId: user.userId,
-      mobileNo: user.mobileNo,
-      userType: user.userType,
-      customerName: user.customerName,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      userId: userPlain.userId,
+      mobileNo: userPlain.mobileNo,
+      userType: userPlain.userType,
+      customerName: userPlain.customerName,
+      createdAt: userPlain.createdAt,
+      updatedAt: userPlain.updatedAt,
     };
   }
 

@@ -18,6 +18,9 @@ export class User {
 
   @Prop({ required: false })
   customerName?: string;
+
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export type UserDocument = User & Document;
