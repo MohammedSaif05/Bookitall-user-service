@@ -7,14 +7,14 @@ import { Document, Types } from "mongoose";
   versionKey: false,
 })
 export class Promotion {
-  @Prop({ required: true })
-  vendorId!: string;
+  @Prop({ required: false })
+  vendorId?: string;
 
-  @Prop({ type: Types.ObjectId, required: true, ref: "PromotionRequest" })
-  promotionRequestId!: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, required: false, ref: "PromotionRequest" })
+  promotionRequestId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, required: true, ref: "PromotionAsset" })
-  promotionAssetId!: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, required: false, ref: "PromotionAsset" })
+  promotionAssetId?: Types.ObjectId;
 
   @Prop({ required: true })
   imageUrl!: string;
@@ -33,6 +33,9 @@ export class Promotion {
 
   @Prop({ type: Boolean, default: true })
   isActive!: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  isGlobal!: boolean;
 }
 
 export type PromotionDocument = Promotion & Document;

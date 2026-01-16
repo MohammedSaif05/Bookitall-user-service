@@ -19,6 +19,7 @@ import {
 import { Promotion, PromotionDocument } from "./schemas/promotion.schema.js";
 import { CreatePromotionRequestDto } from "./dto/create-promotion-request.dto.js";
 import { UploadPromotionImagesDto } from "./dto/upload-promotion-images.dto.js";
+import { CreateGlobalPromotionDto } from "./dto/create-global-promotion.dto.js";
 import {
   Business,
   BusinessDocument,
@@ -425,18 +426,27 @@ export class PromotionsService {
   }
 
   /**
-   * Step 7: User fetches active promotions
+   * Step 7: User fetches active promotions (includes global promotions)
    */
   async getActivePromotions(isActive?: boolean) {
     const now = new Date();
-    const query: {
-      startDate: { $lte: Date };
-      endDate: { $gte: Date };
-      isActive: boolean;
-    } = {
-      startDate: { $lte: now },
-      endDate: { $gte: now },
-      isActive: isActive !== undefined ? isActive : true,
+    const isActiveFilter = isActive !== undefined ? isActive : true;
+
+    // Query for promotions that are active and either:
+    // 1. Global promotions (isGlobal: true)
+    // 2. Regular promotions within date range (isGlobal: false or undefined)
+    const query: any = {
+      isActive: isActiveFilter,
+      $or: [
+        // Global promotions (always included if active)
+        { isGlobal: true },
+        // Regular promotions with date range
+        {
+          $or: [{ isGlobal: false }, { isGlobal: { $exists: false } }],
+          startDate: { $lte: now },
+          endDate: { $gte: now },
+        },
+      ],
     };
 
     const promotions = await this.promotionModel
@@ -446,13 +456,133 @@ export class PromotionsService {
 
     return promotions.map((promo) => ({
       promotionId: promo._id.toString(),
-      vendorId: promo.vendorId,
+      vendorId: promo.vendorId || null,
       imageUrl: promo.imageUrl,
       category: promo.category,
       description: promo.description,
       startDate: promo.startDate,
       endDate: promo.endDate,
       isActive: promo.isActive,
+      isGlobal: promo.isGlobal || false,
     }));
+  }
+
+  /**
+   * Admin creates a global promotion
+   */
+  async createGlobalPromotion(
+    createDto: CreateGlobalPromotionDto,
+    files: { promotionImage?: Array<{ buffer: Buffer; mimetype: string }> },
+  ) {
+    // Validate file
+    const images = files.promotionImage ?? [];
+
+    if (!Array.isArray(images) || images.length !== 1) {
+      throw new BadRequestException(
+        "promotionImage must contain exactly 1 file",
+      );
+    }
+
+    const file = images[0];
+    if (!file.buffer || !file.mimetype) {
+      throw new BadRequestException("Invalid file upload");
+    }
+
+    let uploadedUrl: string | undefined;
+    let uploadedKey: string | undefined;
+
+    try {
+      // Upload image to R2
+      uploadedKey = `promotions/global/global-promotion-${randomUUID()}`;
+      await this.r2Service.uploadObject(
+        uploadedKey,
+        file.buffer,
+        file.mimetype,
+      );
+      uploadedUrl = this.r2Service.getPublicUrl(uploadedKey);
+
+      // Calculate dates (global promotions are active for a long time by default)
+      const now = new Date();
+      const startDate = new Date(now);
+      // Set end date to 1 year from now (can be adjusted)
+      const endDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+      // Create global promotion document
+      const promotion = new this.promotionModel({
+        vendorId: undefined,
+        promotionRequestId: undefined,
+        promotionAssetId: undefined,
+        imageUrl: uploadedUrl,
+        category: createDto.category,
+        description: createDto.description,
+        startDate,
+        endDate,
+        isActive: true,
+        isGlobal: true,
+      });
+
+      const savedPromotion = await promotion.save();
+
+      return {
+        promotionId: savedPromotion._id.toString(),
+        imageUrl: savedPromotion.imageUrl,
+        category: savedPromotion.category,
+        description: savedPromotion.description,
+        startDate: savedPromotion.startDate,
+        endDate: savedPromotion.endDate,
+        isActive: savedPromotion.isActive,
+        isGlobal: savedPromotion.isGlobal,
+        message: "Global promotion created successfully",
+      };
+    } catch (error) {
+      // Cleanup uploaded file on error
+      if (uploadedKey) {
+        try {
+          await this.r2Service.deleteObject(uploadedKey);
+        } catch {
+          // Ignore delete errors during cleanup
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Admin deletes a global promotion
+   */
+  async deleteGlobalPromotion(promotionId: string) {
+    // Find the promotion
+    const promotion = await this.promotionModel.findById(promotionId).exec();
+
+    if (!promotion) {
+      throw new NotFoundException(`Promotion with id ${promotionId} not found`);
+    }
+
+    if (!promotion.isGlobal) {
+      throw new BadRequestException(
+        "This is not a global promotion. Use the appropriate delete endpoint.",
+      );
+    }
+
+    // Delete image from R2
+    const key = this.r2Service.getKeyFromUrl(promotion.imageUrl);
+    if (key) {
+      try {
+        await this.r2Service.deleteObject(key);
+      } catch (error) {
+        console.error(
+          `Failed to delete image from R2: ${promotion.imageUrl}`,
+          error,
+        );
+        // Continue with deletion even if R2 deletion fails
+      }
+    }
+
+    // Delete promotion document
+    await this.promotionModel.findByIdAndDelete(promotionId).exec();
+
+    return {
+      message: "Global promotion deleted successfully",
+    };
   }
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -15,6 +16,7 @@ import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import type { Response } from "express";
 import { PromotionsService } from "./promotions.service.js";
 import { UploadPromotionImagesDto } from "./dto/upload-promotion-images.dto.js";
+import { CreateGlobalPromotionDto } from "./dto/create-global-promotion.dto.js";
 
 @Controller("admin/promotions")
 export class AdminPromotionsController {
@@ -73,6 +75,47 @@ export class AdminPromotionsController {
     @Res() res: Response,
   ) {
     const result = await this.promotionsService.approvePromotion(requestId);
+    res.json({ success: true, data: result });
+    res.end();
+  }
+
+  /**
+   * Admin creates a global promotion
+   * POST /api/admin/promotions/global-promote
+   */
+  @Post("global-promote")
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: "promotionImage", maxCount: 1 }]),
+  )
+  async createGlobalPromotion(
+    @UploadedFiles()
+    files: {
+      promotionImage?: Array<{ buffer: Buffer; mimetype: string }>;
+    },
+    @Body() payload: CreateGlobalPromotionDto,
+    @Res() res: Response,
+  ) {
+    const result = await this.promotionsService.createGlobalPromotion(
+      payload,
+      files,
+    );
+    res.json({ success: true, data: result });
+    res.end();
+  }
+
+  /**
+   * Admin deletes a global promotion
+   * DELETE /api/admin/promotions/global-promote/:promotionId
+   */
+  @Delete("global-promote/:promotionId")
+  @HttpCode(HttpStatus.OK)
+  async deleteGlobalPromotion(
+    @Param("promotionId") promotionId: string,
+    @Res() res: Response,
+  ) {
+    const result =
+      await this.promotionsService.deleteGlobalPromotion(promotionId);
     res.json({ success: true, data: result });
     res.end();
   }

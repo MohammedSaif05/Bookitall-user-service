@@ -10,6 +10,7 @@ The Promotions module allows vendors to submit promotion requests, admins to upl
 
 ### Flow Summary
 
+**Vendor Promotions Flow:**
 1. **Vendor submits promotion request** → Status: `pending`
 2. **Admin views all promotion requests** → See all vendor requests (can filter by status)
 3. **Admin uploads promotion images** → Status: `images_uploaded`
@@ -18,6 +19,11 @@ The Promotions module allows vendors to submit promotion requests, admins to upl
 6. **Vendor selects ONE image** → Mark an image as selected
 7. **Admin approves promotion** → Status: `approved`, creates promotion document
 8. **Customer fetches active promotions** → View active promotions in the app
+
+**Global Promotions Flow:**
+1. **Admin creates global promotion** → Uploads image directly, creates promotion document
+2. **Customer fetches active promotions** → Global promotions always included when active
+3. **Admin deletes global promotion** → Removes promotion and associated image
 
 ---
 
@@ -510,11 +516,128 @@ curl -X POST \
 
 ---
 
+## Step 6a: Admin Creates Global Promotion
+
+**Endpoint:** `POST /api/admin/promotions/global-promote`
+
+**Description:** Admin creates a global promotion directly in the promotions collection. Global promotions are shown to all users regardless of vendor and are always included in the promotions list (when active).
+
+**Content-Type:** `multipart/form-data`
+
+**Request Body (Form Data):**
+```form-data
+category: "offer"
+description: "Special global promotion for all users"
+promotionImage: <File> (1 image file required - jpg, png, etc.)
+```
+
+**Field Validations:**
+- `category` (enum, required) - Must be either `"offer"` or `"featured"`
+- `description` (string, required) - Description of the global promotion
+- `promotionImage` (file, required) - One image file for the promotion
+
+**Success Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "promotionId": "65a1b2c3d4e5f6g7h8i9j0k10",
+    "imageUrl": "https://pub-.../promotions/global/global-promotion-xxx",
+    "category": "offer",
+    "description": "Special global promotion for all users",
+    "startDate": "2024-01-15T12:00:00.000Z",
+    "endDate": "2025-01-15T12:00:00.000Z",
+    "isActive": true,
+    "isGlobal": true,
+    "message": "Global promotion created successfully"
+  }
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "message": "promotionImage must contain exactly 1 file",
+  "path": "/api/admin/promotions/global-promote",
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Sample cURL:**
+```bash
+curl -X POST \
+  'https://api.example.com/api/admin/promotions/global-promote' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'category=offer' \
+  -F 'description=Special global promotion for all users' \
+  -F 'promotionImage=@/path/to/image.jpg'
+```
+
+**Note:** Global promotions are automatically set to be active for 1 year from creation date. They are always included in the promotions list when active.
+
+---
+
+## Step 6b: Admin Deletes Global Promotion
+
+**Endpoint:** `DELETE /api/admin/promotions/global-promote/:promotionId`
+
+**Description:** Admin deletes a global promotion. This will delete the promotion document from the database and the associated image from R2 storage.
+
+**Content-Type:** `application/json`
+
+**URL Parameters:**
+- `promotionId` (string, required) - The global promotion ID
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Global promotion deleted successfully"
+  }
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "success": false,
+  "statusCode": 404,
+  "message": "Promotion with id 65a1b2c3d4e5f6g7h8i9j0k10 not found",
+  "path": "/api/admin/promotions/global-promote/65a1b2c3d4e5f6g7h8i9j0k10",
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "success": false,
+  "statusCode": 400,
+  "message": "This is not a global promotion. Use the appropriate delete endpoint.",
+  "path": "/api/admin/promotions/global-promote/65a1b2c3d4e5f6g7h8i9j0k10",
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Sample cURL:**
+```bash
+curl -X DELETE \
+  'https://api.example.com/api/admin/promotions/global-promote/65a1b2c3d4e5f6g7h8i9j0k10' \
+  -H 'Content-Type: application/json'
+```
+
+**Note:** Deleting a global promotion will also delete the associated image from R2 storage.
+
+---
+
 ## Step 7: Customer Fetches Active Promotions
 
 **Endpoint:** `GET /api/promotions?isActive=true`
 
-**Description:** Customer (user app) fetches active promotions. Returns promotions where `isActive = true` and current date is between `startDate` and `endDate`.
+**Description:** Customer (user app) fetches active promotions. Returns both vendor promotions (where current date is between `startDate` and `endDate`) and global promotions (always included when active).
 
 **Content-Type:** `application/json`
 
@@ -534,7 +657,8 @@ curl -X POST \
       "description": "Special discount on all services",
       "startDate": "2024-01-15T12:00:00.000Z",
       "endDate": "2024-01-22T12:00:00.000Z",
-      "isActive": true
+      "isActive": true,
+      "isGlobal": false
     },
     {
       "promotionId": "65a1b2c3d4e5f6g7h8i9j0k8",
@@ -544,7 +668,19 @@ curl -X POST \
       "description": "Featured vendor of the month",
       "startDate": "2024-01-01T00:00:00.000Z",
       "endDate": "2024-01-31T23:59:59.000Z",
-      "isActive": true
+      "isActive": true,
+      "isGlobal": false
+    },
+    {
+      "promotionId": "65a1b2c3d4e5f6g7h8i9j0k10",
+      "vendorId": null,
+      "imageUrl": "https://pub-.../promotions/global/global-promotion-xxx",
+      "category": "offer",
+      "description": "Special global promotion for all users",
+      "startDate": "2024-01-15T12:00:00.000Z",
+      "endDate": "2025-01-15T12:00:00.000Z",
+      "isActive": true,
+      "isGlobal": true
     }
   ]
 }
@@ -557,9 +693,9 @@ curl -X GET \
   -H 'Content-Type: application/json'
 ```
 
-**Note:** The query automatically filters promotions where:
-- `isActive = true` (or as specified in query)
-- `startDate <= current date <= endDate`
+**Note:** The query automatically includes:
+- **Global promotions**: Always included when `isActive = true` (or as specified in query), regardless of date range
+- **Vendor promotions**: Included when `isActive = true` and `startDate <= current date <= endDate`
 
 ---
 
@@ -606,15 +742,16 @@ Stores promotional images uploaded by admin.
 Stores approved promotions visible to customers.
 
 **Fields:**
-- `vendorId` (string, required)
-- `promotionRequestId` (ObjectId, required, ref: PromotionRequest)
-- `promotionAssetId` (ObjectId, required, ref: PromotionAsset)
-- `imageUrl` (string, required)
-- `category` (enum: "offer" | "featured", required)
-- `description` (string, required)
-- `startDate` (Date, required)
-- `endDate` (Date, required)
-- `isActive` (boolean, default: true)
+- `vendorId` (string, optional) - Vendor ID for vendor-specific promotions. `null` for global promotions
+- `promotionRequestId` (ObjectId, optional, ref: PromotionRequest) - Reference to promotion request (vendor promotions only)
+- `promotionAssetId` (ObjectId, optional, ref: PromotionAsset) - Reference to promotion asset (vendor promotions only)
+- `imageUrl` (string, required) - URL of the promotion image
+- `category` (enum: "offer" | "featured", required) - Promotion category
+- `description` (string, required) - Description of the promotion
+- `startDate` (Date, required) - Start date of the promotion
+- `endDate` (Date, required) - End date of the promotion
+- `isActive` (boolean, default: true) - Whether the promotion is active
+- `isGlobal` (boolean, default: false) - Whether this is a global promotion
 - `createdAt` (Date, auto)
 - `updatedAt` (Date, auto)
 
