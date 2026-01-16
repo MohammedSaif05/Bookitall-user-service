@@ -11,6 +11,7 @@ import { OnboardModule } from "./onboard/onboard.module";
 import { StorageModule } from "./common/storage/storage.module";
 import { VerificationModule } from "./modules/verification/verification.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { PromotionsModule } from "./modules/promotions/promotions.module";
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { NotificationsModule } from "./modules/notifications/notifications.modul
     StorageModule,
     VerificationModule,
     NotificationsModule,
+    PromotionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

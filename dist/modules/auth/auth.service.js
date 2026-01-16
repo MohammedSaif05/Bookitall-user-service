@@ -104,6 +104,21 @@ let AuthService = class AuthService {
             customerName: user.customerName,
         };
     }
+    async getCustomerDetails(userId) {
+        const user = await this.userModel.findOne({ userId }).lean().exec();
+        if (!user) {
+            throw new common_1.NotFoundException(`User with userId ${userId} not found`);
+        }
+        const userPlain = user;
+        return {
+            userId: userPlain.userId,
+            mobileNo: userPlain.mobileNo,
+            userType: userPlain.userType,
+            customerName: userPlain.customerName,
+            createdAt: userPlain.createdAt,
+            updatedAt: userPlain.updatedAt,
+        };
+    }
     async generateUniqueUserId() {
         while (true) {
             const userId = (0, crypto_1.randomBytes)(10).toString("base64url");

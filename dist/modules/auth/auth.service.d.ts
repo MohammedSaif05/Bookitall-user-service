@@ -22,5 +22,13 @@ export declare class AuthService {
         userId: string;
         customerName: string;
     }>;
+    getCustomerDetails(userId: string): Promise<{
+        userId: string;
+        mobileNo: string;
+        userType: string;
+        customerName: string | undefined;
+        createdAt: Date | undefined;
+        updatedAt: Date | undefined;
+    }>;
     private generateUniqueUserId;
 }

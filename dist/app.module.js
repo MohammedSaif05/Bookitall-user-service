@@ -22,6 +22,8 @@ const auth_module_1 = require("./modules/auth/auth.module");
 const onboard_module_1 = require("./onboard/onboard.module");
 const storage_module_1 = require("./common/storage/storage.module");
 const verification_module_1 = require("./modules/verification/verification.module");
+const notifications_module_1 = require("./modules/notifications/notifications.module");
+const promotions_module_1 = require("./modules/promotions/promotions.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -44,6 +46,8 @@ exports.AppModule = AppModule = __decorate([
             onboard_module_1.OnboardModule,
             storage_module_1.StorageModule,
             verification_module_1.VerificationModule,
+            notifications_module_1.NotificationsModule,
+            promotions_module_1.PromotionsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
