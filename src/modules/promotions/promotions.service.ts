@@ -376,9 +376,40 @@ export class PromotionsService {
 
     const savedPromotion = await promotion.save();
 
-    // Update promotion request status
-    promotionRequest.status = "approved";
-    await promotionRequest.save();
+    // Fetch all assets for this promotion request
+    const allAssets = await this.promotionAssetModel
+      .find({ promotionRequestId: new Types.ObjectId(requestId) })
+      .exec();
+
+    // Delete unselected images from R2 storage
+    for (const asset of allAssets) {
+      // Skip the selected asset (its URL is already saved in the promotion document)
+      if (asset._id.toString() === selectedAsset._id.toString()) {
+        continue;
+      }
+
+      // Delete unselected image from R2
+      const key = this.r2Service.getKeyFromUrl(asset.imageUrl);
+      if (key) {
+        try {
+          await this.r2Service.deleteObject(key);
+        } catch (error) {
+          // Log error but continue cleanup
+          console.error(
+            `Failed to delete image from R2: ${asset.imageUrl}`,
+            error,
+          );
+        }
+      }
+    }
+
+    // Delete all promotion assets from database
+    await this.promotionAssetModel
+      .deleteMany({ promotionRequestId: new Types.ObjectId(requestId) })
+      .exec();
+
+    // Delete the promotion request from database
+    await this.promotionRequestModel.findByIdAndDelete(requestId).exec();
 
     return {
       promotionId: savedPromotion._id.toString(),

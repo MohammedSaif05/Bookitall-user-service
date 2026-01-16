@@ -501,7 +501,12 @@ curl -X POST \
 **Note:** 
 - For `weekly` duration: endDate = startDate + 7 days
 - For `monthly` duration: endDate = startDate + 30 days
-- The promotion request status is automatically updated to `approved`
+- After approval, the system automatically:
+  - Creates the promotion document in the `promotions` collection
+  - Deletes all unselected images from R2 storage
+  - Deletes all promotion assets from the `promotion_assets` collection
+  - Deletes the promotion request from the `promotion_requests` collection
+  - Only the approved promotion document is maintained in the `promotions` collection
 
 ---
 
@@ -578,6 +583,8 @@ Stores promotion requests submitted by vendors.
 - `vendorId + status` (compound)
 - `createdAt` (descending)
 
+**Note:** Records are automatically deleted from this collection when a promotion is approved. Only pending, images_uploaded, and rejected requests are maintained.
+
 ### 2. `promotion_assets`
 Stores promotional images uploaded by admin.
 
@@ -592,6 +599,8 @@ Stores promotional images uploaded by admin.
 - `promotionRequestId`
 - `promotionRequestId + isSelectedByVendor` (compound)
 - `createdAt` (descending)
+
+**Note:** All records are automatically deleted from this collection when a promotion is approved. Unselected images are also deleted from R2 storage. Only the selected image URL is preserved in the `promotions` collection.
 
 ### 3. `promotions`
 Stores approved promotions visible to customers.
@@ -615,6 +624,8 @@ Stores approved promotions visible to customers.
 - `startDate + endDate` (compound)
 - `isActive + startDate + endDate` (compound)
 - `createdAt` (descending)
+
+**Note:** This is the only collection that maintains approved promotions. All other related data (requests, assets, unselected images) are cleaned up after approval.
 
 ---
 
