@@ -19,6 +19,10 @@ import {
 import { Promotion, PromotionDocument } from "./schemas/promotion.schema.js";
 import { CreatePromotionRequestDto } from "./dto/create-promotion-request.dto.js";
 import { UploadPromotionImagesDto } from "./dto/upload-promotion-images.dto.js";
+import {
+  Business,
+  BusinessDocument,
+} from "../../onboard/schemas/business.schema.js";
 
 @Injectable()
 export class PromotionsService {
@@ -29,6 +33,8 @@ export class PromotionsService {
     private readonly promotionAssetModel: Model<PromotionAssetDocument>,
     @InjectModel(Promotion.name)
     private readonly promotionModel: Model<PromotionDocument>,
+    @InjectModel(Business.name)
+    private readonly businessModel: Model<BusinessDocument>,
     private readonly r2Service: R2Service,
   ) {}
 
@@ -185,16 +191,48 @@ export class PromotionsService {
       .sort({ createdAt: -1 })
       .exec();
 
-    return requests.map((req) => ({
-      requestId: req._id.toString(),
-      vendorId: req.vendorId,
-      category: req.category,
-      description: req.description,
-      durationType: req.durationType,
-      status: req.status,
-      createdAt: req.createdAt,
-      updatedAt: req.updatedAt,
-    }));
+    // Get unique vendor IDs
+    const vendorIds = [...new Set(requests.map((req) => req.vendorId))];
+
+    // Fetch business information for all vendors
+    const businesses = await this.businessModel
+      .find({ vendorId: { $in: vendorIds } })
+      .lean()
+      .exec();
+
+    // Create a map of vendorId to business info for quick lookup
+    const businessMap = new Map(
+      businesses.map((business) => [
+        business.vendorId,
+        {
+          businessName: business.businessName,
+          businessCategory: business.businessCategory,
+          city: business.address?.city || null,
+        },
+      ]),
+    );
+
+    return requests.map((req) => {
+      const businessInfo = businessMap.get(req.vendorId) || {
+        businessName: null,
+        businessCategory: null,
+        city: null,
+      };
+
+      return {
+        requestId: req._id.toString(),
+        vendorId: req.vendorId,
+        category: req.category,
+        description: req.description,
+        durationType: req.durationType,
+        status: req.status,
+        businessName: businessInfo.businessName,
+        businessCategory: businessInfo.businessCategory,
+        city: businessInfo.city,
+        createdAt: req.createdAt,
+        updatedAt: req.updatedAt,
+      };
+    });
   }
 
   /**

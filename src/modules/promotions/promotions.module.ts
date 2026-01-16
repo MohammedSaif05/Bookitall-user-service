@@ -14,6 +14,10 @@ import {
   PromotionAssetSchema,
 } from "./schemas/promotion-asset.schema.js";
 import { Promotion, PromotionSchema } from "./schemas/promotion.schema.js";
+import {
+  Business,
+  BusinessSchema,
+} from "../../onboard/schemas/business.schema.js";
 
 @Module({
   imports: [
@@ -21,6 +25,7 @@ import { Promotion, PromotionSchema } from "./schemas/promotion.schema.js";
       { name: PromotionRequest.name, schema: PromotionRequestSchema },
       { name: PromotionAsset.name, schema: PromotionAssetSchema },
       { name: Promotion.name, schema: PromotionSchema },
+      { name: Business.name, schema: BusinessSchema },
     ]),
     StorageModule,
   ],

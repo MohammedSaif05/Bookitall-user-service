@@ -110,6 +110,9 @@ curl -X POST \
       "description": "Special discount on all services",
       "durationType": "weekly",
       "status": "pending",
+      "businessName": "Beauty Salon & Spa",
+      "businessCategory": "Beauty & Wellness",
+      "city": "Mumbai",
       "createdAt": "2024-01-15T10:30:00.000Z",
       "updatedAt": "2024-01-15T10:30:00.000Z"
     },
@@ -120,12 +123,30 @@ curl -X POST \
       "description": "Featured vendor promotion",
       "durationType": "monthly",
       "status": "images_uploaded",
+      "businessName": "Hair Studio Pro",
+      "businessCategory": "Hair Salon",
+      "city": "Delhi",
       "createdAt": "2024-01-14T09:00:00.000Z",
       "updatedAt": "2024-01-15T11:00:00.000Z"
     }
   ]
 }
 ```
+
+**Response Fields:**
+- `requestId` (string) - The promotion request ID
+- `vendorId` (string) - The vendor's user ID
+- `category` (string) - Promotion category: "offer" or "featured"
+- `description` (string) - Description of the promotion
+- `durationType` (string) - Duration type: "weekly" or "monthly"
+- `status` (string) - Request status: "pending", "images_uploaded", "approved", or "rejected"
+- `businessName` (string | null) - Business name from vendor's business profile
+- `businessCategory` (string | null) - Business category from vendor's business profile
+- `city` (string | null) - City from vendor's business address
+- `createdAt` (Date) - Request creation timestamp
+- `updatedAt` (Date) - Request last update timestamp
+
+**Note:** `businessName`, `businessCategory`, and `city` will be `null` if the vendor hasn't completed their business profile setup.
 
 **Sample cURL:**
 ```bash
