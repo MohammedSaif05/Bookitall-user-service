@@ -12,6 +12,7 @@ import { StorageModule } from "./common/storage/storage.module";
 import { VerificationModule } from "./modules/verification/verification.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { PromotionsModule } from "./modules/promotions/promotions.module";
+import { RatingsModule } from "./modules/ratings/ratings.module";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { PromotionsModule } from "./modules/promotions/promotions.module";
     VerificationModule,
     NotificationsModule,
     PromotionsModule,
+    RatingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

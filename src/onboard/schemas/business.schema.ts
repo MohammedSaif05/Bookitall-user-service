@@ -81,6 +81,21 @@ export class Business {
 
   @Prop({ type: Boolean, default: true })
   isDiscoverable!: boolean;
+
+  @Prop({
+    type: {
+      average: { type: Number, default: 0 },
+      count: { type: Number, default: 0 },
+      total: { type: Number, default: 0 },
+    },
+    default: { average: 0, count: 0, total: 0 },
+    _id: false,
+  })
+  rating!: {
+    average: number;
+    count: number;
+    total: number;
+  };
 }
 
 export type BusinessDocument = Business & Document;

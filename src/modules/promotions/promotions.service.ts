@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { randomUUID } from "node:crypto";
-import { Model, Types } from "mongoose";
+import { FilterQuery, Model, Types } from "mongoose";
 import { R2Service } from "../../common/storage/r2.service.js";
 import {
   PromotionRequest,
@@ -435,7 +435,7 @@ export class PromotionsService {
     // Query for promotions that are active and either:
     // 1. Global promotions (isGlobal: true)
     // 2. Regular promotions within date range (isGlobal: false or undefined)
-    const query: any = {
+    const query: FilterQuery<PromotionDocument> = {
       isActive: isActiveFilter,
       $or: [
         // Global promotions (always included if active)
