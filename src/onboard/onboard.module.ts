@@ -19,6 +19,7 @@ import {
 import { Category, CategorySchema } from "./schemas/category.schema.js";
 import { CategoriesController } from "./categories.controller.js";
 import { CategoriesPublicController } from "./categories-public.controller.js";
+import { BusinessesPublicController } from "./businesses-public.controller.js";
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { CategoriesPublicController } from "./categories-public.controller.js";
     VendorsController,
     CategoriesController,
     CategoriesPublicController,
+    BusinessesPublicController,
   ],
   providers: [OnboardService],
 })

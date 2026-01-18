@@ -5,7 +5,7 @@ import {
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { randomBytes, randomUUID } from "node:crypto";
-import { Model, Types } from "mongoose";
+import { Model, PipelineStage, Types } from "mongoose";
 import { R2Service } from "../common/storage/r2.service.js";
 import {
   Vendor,
@@ -2535,5 +2535,219 @@ export class OnboardService {
         _id: this.toStringId(categoryPlain._id),
       };
     });
+  }
+
+  /**
+   * Get nearby businesses with services aggregation
+   */
+  async getNearbyBusinesses(params: {
+    lat: number;
+    lng: number;
+    radius?: number;
+    category?: string;
+    page?: number;
+    limit?: number;
+    sort?: "distance" | "rating";
+  }): Promise<{
+    businesses: Array<{
+      businessId: string;
+      businessName: string;
+      category: string;
+      city: string;
+      images: string[];
+      rating: {
+        average: number;
+        count: number;
+      };
+      distanceInKm: number;
+      price: {
+        type: "single" | "range";
+        min: number;
+        max: number;
+      };
+    }>;
+    page: number;
+    limit: number;
+    hasMore: boolean;
+  }> {
+    const {
+      lat,
+      lng,
+      radius = 10000,
+      category,
+      page = 1,
+      limit = 10,
+      sort = "distance",
+    } = params;
+
+    // Clamp values
+    const clampedRadius = Math.min(Math.max(radius, 100), 25000);
+    const clampedLimit = Math.min(Math.max(limit, 1), 20);
+    const clampedPage = Math.max(page, 1);
+
+    // Build aggregation pipeline
+    const pipeline: PipelineStage[] = [];
+
+    // Stage 1: $geoNear - must be first stage
+    // Filter businesses early using query parameter for better performance
+    const geoNearQuery: Record<string, unknown> = {
+      isActive: true,
+      isDiscoverable: true,
+    };
+    if (category) {
+      geoNearQuery.businessCategory = category;
+    }
+
+    pipeline.push({
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [lng, lat], // [longitude, latitude]
+        },
+        distanceField: "distanceInMeters",
+        maxDistance: clampedRadius,
+        query: geoNearQuery,
+        spherical: true,
+      },
+    });
+
+    // Stage 3: $lookup - join with services collection
+    pipeline.push({
+      $lookup: {
+        from: "services",
+        localField: "_id",
+        foreignField: "businessId",
+        as: "services",
+      },
+    });
+
+    // Stage 4: $unwind - unwind services (exclude businesses without services)
+    pipeline.push({
+      $unwind: {
+        path: "$services",
+        preserveNullAndEmptyArrays: false,
+      },
+    });
+
+    // Stage 5: $match - filter services (isActive, isDiscoverable)
+    pipeline.push({
+      $match: {
+        "services.isActive": true,
+        "services.isDiscoverable": true,
+      },
+    });
+
+    // Stage 6: $group - compute min/max prices and service count per business
+    pipeline.push({
+      $group: {
+        _id: "$_id",
+        businessName: { $first: "$businessName" },
+        businessCategory: { $first: "$businessCategory" },
+        city: { $first: "$address.city" },
+        images: { $first: "$images" },
+        rating: { $first: "$rating" },
+        distanceInMeters: { $first: "$distanceInMeters" },
+        minPrice: { $min: "$services.price" },
+        maxPrice: { $max: "$services.price" },
+        serviceCount: { $sum: 1 },
+      },
+    });
+
+    // Stage 7: $project - shape output, compute price type, and convert distance to km
+    pipeline.push({
+      $project: {
+        _id: 1,
+        businessName: 1,
+        businessCategory: 1,
+        city: 1,
+        images: 1,
+        rating: {
+          average: { $ifNull: ["$rating.average", 0] },
+          count: { $ifNull: ["$rating.count", 0] },
+        },
+        distanceInKm: {
+          $round: [{ $divide: ["$distanceInMeters", 1000] }, 1],
+        },
+        price: {
+          type: {
+            $cond: [{ $eq: ["$serviceCount", 1] }, "single", "range"],
+          },
+          min: "$minPrice",
+          max: "$maxPrice",
+        },
+      },
+    });
+
+    // Stage 10: $sort - sort by distance or rating
+    if (sort === "rating") {
+      pipeline.push({
+        $sort: {
+          "rating.average": -1, // DESC
+          distanceInKm: 1, // ASC
+        },
+      });
+    } else {
+      // Default: sort by distance
+      pipeline.push({
+        $sort: {
+          distanceInKm: 1, // ASC
+        },
+      });
+    }
+
+    // Stage 11: $skip and $limit - pagination
+    // Fetch limit+1 to determine hasMore
+    pipeline.push({
+      $skip: (clampedPage - 1) * clampedLimit,
+    });
+    pipeline.push({
+      $limit: clampedLimit + 1,
+    });
+
+    // Execute aggregation
+    const results = await this.businessModel.aggregate(pipeline).exec();
+
+    // Determine hasMore
+    const hasMore = results.length > clampedLimit;
+    if (hasMore) {
+      results.pop(); // Remove the extra item
+    }
+
+    // Transform results to match response format
+    const businesses = results.map((item) => {
+      const itemPlain = item as unknown as {
+        _id: unknown;
+        businessName: string;
+        businessCategory: string;
+        city: string;
+        images: string[];
+        rating: { average: number; count: number };
+        distanceInKm: number;
+        price: { type: "single" | "range"; min: number; max: number };
+      };
+
+      const businessId = this.toStringId(itemPlain._id);
+      if (!businessId) {
+        throw new Error("Business ID is missing in aggregation result");
+      }
+
+      return {
+        businessId,
+        businessName: itemPlain.businessName,
+        category: itemPlain.businessCategory,
+        city: itemPlain.city,
+        images: itemPlain.images || [],
+        rating: itemPlain.rating,
+        distanceInKm: itemPlain.distanceInKm,
+        price: itemPlain.price,
+      };
+    });
+
+    return {
+      businesses,
+      page: clampedPage,
+      limit: clampedLimit,
+      hasMore,
+    };
   }
 }

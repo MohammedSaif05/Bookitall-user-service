@@ -1,0 +1,40 @@
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Query,
+  Res,
+} from "@nestjs/common";
+import type { Response } from "express";
+import { OnboardService } from "./onboard.service.js";
+import { NearbyBusinessesDto } from "./dto/nearby-businesses.dto.js";
+
+@Controller("businesses")
+export class BusinessesPublicController {
+  constructor(private readonly onboardService: OnboardService) {}
+
+  /**
+   * GET /api/businesses/nearby
+   * Get nearby businesses with service price ranges
+   */
+  @Get("nearby")
+  @HttpCode(HttpStatus.OK)
+  async getNearbyBusinesses(
+    @Query() query: NearbyBusinessesDto,
+    @Res() res: Response,
+  ) {
+    const result = await this.onboardService.getNearbyBusinesses({
+      lat: query.lat,
+      lng: query.lng,
+      radius: query.radius,
+      category: query.category,
+      page: query.page,
+      limit: query.limit,
+      sort: query.sort,
+    });
+
+    res.json({ success: true, data: result });
+    res.end();
+  }
+}
