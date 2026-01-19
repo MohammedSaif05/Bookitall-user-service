@@ -10,6 +10,7 @@ import {
 import type { Response } from "express";
 import { OnboardService } from "./onboard.service.js";
 import { NearbyBusinessesDto } from "./dto/nearby-businesses.dto.js";
+import { BusinessDetailsDto } from "./dto/business-details.dto.js";
 
 @Controller("businesses")
 export class BusinessesPublicController {
@@ -48,15 +49,14 @@ export class BusinessesPublicController {
   @HttpCode(HttpStatus.OK)
   async getBusinessDetails(
     @Param("businessId") businessId: string,
-    @Query("lat") lat?: string,
-    @Query("lng") lng?: string,
+    @Query() query: BusinessDetailsDto,
     @Res() res: Response,
   ) {
     const userLocation =
-      lat && lng
+      query.lat !== undefined && query.lng !== undefined
         ? {
-            lat: parseFloat(lat),
-            lng: parseFloat(lng),
+            lat: query.lat,
+            lng: query.lng,
           }
         : undefined;
 
