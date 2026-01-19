@@ -20,6 +20,11 @@ import { Category, CategorySchema } from "./schemas/category.schema.js";
 import { CategoriesController } from "./categories.controller.js";
 import { CategoriesPublicController } from "./categories-public.controller.js";
 import { BusinessesPublicController } from "./businesses-public.controller.js";
+import { User, UserSchema } from "../modules/auth/schemas/user.schema.js";
+import {
+  BusinessRating,
+  BusinessRatingSchema,
+} from "../modules/ratings/schemas/business-rating.schema.js";
 
 @Module({
   imports: [
@@ -31,6 +36,8 @@ import { BusinessesPublicController } from "./businesses-public.controller.js";
       { name: ServiceAvailability.name, schema: ServiceAvailabilitySchema },
       { name: ServiceApproval.name, schema: ServiceApprovalSchema },
       { name: Category.name, schema: CategorySchema },
+      { name: User.name, schema: UserSchema },
+      { name: BusinessRating.name, schema: BusinessRatingSchema },
     ]),
     StorageModule,
   ],

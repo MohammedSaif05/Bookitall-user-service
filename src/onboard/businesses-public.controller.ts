@@ -3,6 +3,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Query,
   Res,
 } from "@nestjs/common";
@@ -34,6 +35,21 @@ export class BusinessesPublicController {
       sort: query.sort,
     });
 
+    res.json({ success: true, data: result });
+    res.end();
+  }
+
+  /**
+   * GET /api/businesses/:businessId/details
+   * Get complete business details with services and reviews
+   */
+  @Get(":businessId/details")
+  @HttpCode(HttpStatus.OK)
+  async getBusinessDetails(
+    @Param("businessId") businessId: string,
+    @Res() res: Response,
+  ) {
+    const result = await this.onboardService.getBusinessDetails(businessId);
     res.json({ success: true, data: result });
     res.end();
   }

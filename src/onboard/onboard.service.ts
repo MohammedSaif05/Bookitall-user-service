@@ -23,6 +23,11 @@ import {
   ServiceApprovalDocument,
 } from "./schemas/service-approval.schema.js";
 import { Category, CategoryDocument } from "./schemas/category.schema.js";
+import { User, UserDocument } from "../modules/auth/schemas/user.schema.js";
+import {
+  BusinessRating,
+  BusinessRatingDocument,
+} from "../modules/ratings/schemas/business-rating.schema.js";
 import {
   AddVendorServiceDto,
   VendorServiceItemDto,
@@ -68,6 +73,10 @@ export class OnboardService {
     private readonly serviceApprovalModel: Model<ServiceApprovalDocument>,
     @InjectModel(Category.name)
     private readonly categoryModel: Model<CategoryDocument>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<UserDocument>,
+    @InjectModel(BusinessRating.name)
+    private readonly businessRatingModel: Model<BusinessRatingDocument>,
     private readonly r2Service: R2Service,
   ) {}
 
@@ -2748,6 +2757,199 @@ export class OnboardService {
       page: clampedPage,
       limit: clampedLimit,
       hasMore,
+    };
+  }
+
+  /**
+   * Get complete business details with services and reviews
+   */
+  async getBusinessDetails(businessId: string): Promise<{
+    business: {
+      businessId: string;
+      businessName: string;
+      category: string;
+      city: string;
+      images: string[];
+      rating: {
+        average: number;
+        count: number;
+      };
+      address: {
+        address: string;
+        landmark?: string;
+        city: string;
+      };
+    };
+    services: Array<{
+      serviceId: string;
+      serviceName: string;
+      price: number;
+      durationInMinutes: number;
+      serviceImage?: string;
+    }>;
+    reviews: Array<{
+      userName: string;
+      rating: number;
+      review: string;
+      createdAt: Date;
+    }>;
+  }> {
+    // Validate businessId format
+    if (!Types.ObjectId.isValid(businessId)) {
+      throw new BadRequestException(
+        `Invalid businessId format: "${businessId}"`,
+      );
+    }
+
+    const businessObjectId = new Types.ObjectId(businessId);
+
+    // STEP 1: Fetch business
+    const business = await this.businessModel
+      .findById(businessObjectId)
+      .lean()
+      .exec();
+
+    if (!business) {
+      throw new NotFoundException(`Business with id "${businessId}" not found`);
+    }
+
+    const businessPlain = business as unknown as {
+      _id: unknown;
+      businessName: string;
+      businessCategory: string;
+      address: {
+        address: string;
+        city: string;
+        landmark?: string;
+      };
+      images: string[];
+      rating?: {
+        average: number;
+        count: number;
+      };
+    };
+
+    // STEP 2: Fetch services (isActive = true, isDiscoverable = true)
+    const services = await this.serviceModel
+      .find({
+        businessId: businessObjectId,
+        isActive: true,
+        isDiscoverable: true,
+      })
+      .lean()
+      .exec();
+
+    const servicesList = services.map((service) => {
+      const servicePlain = service as unknown as {
+        _id: unknown;
+        serviceName: string;
+        price: number;
+        durationInMinutes: number;
+        serviceImage?: string;
+      };
+
+      return {
+        serviceId: this.toStringId(servicePlain._id) || "",
+        serviceName: servicePlain.serviceName,
+        price: servicePlain.price,
+        durationInMinutes: servicePlain.durationInMinutes,
+        serviceImage: servicePlain.serviceImage,
+      };
+    });
+
+    // STEP 3: Fetch reviews (review IS NOT empty, sorted by updatedAt DESC, limit 5)
+    // Use aggregation to join with users collection for better performance
+    const reviewsPipeline: PipelineStage[] = [
+      {
+        $match: {
+          businessId: businessObjectId,
+          review: { $exists: true, $ne: null, $nin: [null, ""] },
+        },
+      },
+      {
+        $sort: { updatedAt: -1 },
+      },
+      {
+        $limit: 5,
+      },
+      {
+        $lookup: {
+          from: "users",
+          let: { ratingUserId: "$userId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ["$userId", "$$ratingUserId"],
+                },
+              },
+            },
+            {
+              $project: {
+                customerName: 1,
+              },
+            },
+          ],
+          as: "user",
+        },
+      },
+      {
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          userName: {
+            $ifNull: ["$user.customerName", "Anonymous"],
+          },
+          rating: "$rating",
+          review: "$review",
+          createdAt: "$createdAt",
+        },
+      },
+    ];
+
+    const reviewsAggregation = await this.businessRatingModel
+      .aggregate(reviewsPipeline)
+      .exec();
+
+    const reviewsWithUsers = reviewsAggregation.map((review) => {
+      const reviewPlain = review as unknown as {
+        userName: string;
+        rating: number;
+        review: string;
+        createdAt: Date;
+      };
+
+      return {
+        userName: reviewPlain.userName,
+        rating: reviewPlain.rating,
+        review: reviewPlain.review,
+        createdAt: reviewPlain.createdAt,
+      };
+    });
+
+    return {
+      business: {
+        businessId: this.toStringId(businessPlain._id) || "",
+        businessName: businessPlain.businessName,
+        category: businessPlain.businessCategory,
+        city: businessPlain.address.city,
+        images: businessPlain.images || [],
+        rating: {
+          average: businessPlain.rating?.average || 0,
+          count: businessPlain.rating?.count || 0,
+        },
+        address: {
+          address: businessPlain.address.address,
+          landmark: businessPlain.address.landmark,
+          city: businessPlain.address.city,
+        },
+      },
+      services: servicesList,
+      reviews: reviewsWithUsers,
     };
   }
 }
