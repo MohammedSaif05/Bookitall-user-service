@@ -2763,7 +2763,10 @@ export class OnboardService {
   /**
    * Get complete business details with services and reviews
    */
-  async getBusinessDetails(businessId: string): Promise<{
+  async getBusinessDetails(
+    businessId: string,
+    userLocation?: { lat: number; lng: number },
+  ): Promise<{
     business: {
       businessId: string;
       businessName: string;
@@ -2779,7 +2782,15 @@ export class OnboardService {
         landmark?: string;
         city: string;
       };
+      distanceInKm?: number;
     };
+    timings: Array<{
+      day: string;
+      open?: string;
+      close?: string;
+      breaks?: Array<{ start: string; end: string }>;
+      isClosed: boolean;
+    }>;
     services: Array<{
       serviceId: string;
       serviceName: string;
@@ -2823,11 +2834,33 @@ export class OnboardService {
         landmark?: string;
       };
       images: string[];
+      location: {
+        type: "Point";
+        coordinates: [number, number]; // [longitude, latitude]
+      };
       rating?: {
         average: number;
         count: number;
       };
     };
+
+    // Calculate distance if user location provided
+    let distanceInKm: number | undefined;
+    if (userLocation) {
+      const [businessLng, businessLat] = businessPlain.location.coordinates;
+      // Calculate distance using Haversine formula
+      const R = 6371; // Earth's radius in km
+      const dLat = this.toRadians(businessLat - userLocation.lat);
+      const dLng = this.toRadians(businessLng - userLocation.lng);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(this.toRadians(userLocation.lat)) *
+          Math.cos(this.toRadians(businessLat)) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      distanceInKm = Math.round(R * c * 10) / 10; // Round to 1 decimal place
+    }
 
     // STEP 2: Fetch services (isActive = true, isDiscoverable = true)
     const services = await this.serviceModel
@@ -2931,6 +2964,74 @@ export class OnboardService {
       };
     });
 
+    // STEP 4: Fetch working hours from service_availability
+    const availabilityDocs = await this.serviceAvailabilityModel
+      .find({
+        businessId: businessObjectId,
+        isActive: true,
+      })
+      .lean()
+      .exec();
+
+    // Map day numbers to day names
+    const dayNumberToName: Record<number, string> = {
+      0: "Sunday",
+      1: "Monday",
+      2: "Tuesday",
+      3: "Wednesday",
+      4: "Thursday",
+      5: "Friday",
+      6: "Saturday",
+    };
+
+    // Create a map of dayOfWeek -> availability document
+    type AvailabilityDoc = {
+      dayOfWeek: number;
+      startTime: string;
+      endTime: string;
+      breaks: Array<{ start: string; end: string }>;
+    };
+    const availabilityMap = new Map<number, AvailabilityDoc>();
+    availabilityDocs.forEach((doc) => {
+      const docPlain = doc as unknown as AvailabilityDoc;
+      availabilityMap.set(docPlain.dayOfWeek, docPlain);
+    });
+
+    // Build timings array for all 7 days (Sunday=0 to Saturday=6)
+    const timings: Array<{
+      day: string;
+      open?: string;
+      close?: string;
+      breaks?: Array<{ start: string; end: string }>;
+      isClosed: boolean;
+    }> = [];
+    for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
+      const availability = availabilityMap.get(dayOfWeek);
+      const dayName = dayNumberToName[dayOfWeek];
+
+      if (availability) {
+        const availabilityPlain = availability as unknown as {
+          startTime: string;
+          endTime: string;
+          breaks: Array<{ start: string; end: string }>;
+        };
+
+        timings.push({
+          day: dayName,
+          open: availabilityPlain.startTime,
+          close: availabilityPlain.endTime,
+          breaks: availabilityPlain.breaks || [],
+          isClosed: false,
+        });
+      } else {
+        // No availability document for this day -> closed
+        timings.push({
+          day: dayName,
+          isClosed: true,
+        });
+      }
+    }
+
     return {
       business: {
         businessId: this.toStringId(businessPlain._id) || "",
@@ -2947,9 +3048,18 @@ export class OnboardService {
           landmark: businessPlain.address.landmark,
           city: businessPlain.address.city,
         },
+        ...(distanceInKm !== undefined && { distanceInKm }),
       },
+      timings,
       services: servicesList,
       reviews: reviewsWithUsers,
     };
+  }
+
+  /**
+   * Convert degrees to radians
+   */
+  private toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
   }
 }

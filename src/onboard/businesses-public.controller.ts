@@ -42,14 +42,28 @@ export class BusinessesPublicController {
   /**
    * GET /api/businesses/:businessId/details
    * Get complete business details with services and reviews
+   * Optional query params: lat, lng (for distance calculation)
    */
   @Get(":businessId/details")
   @HttpCode(HttpStatus.OK)
   async getBusinessDetails(
     @Param("businessId") businessId: string,
+    @Query("lat") lat?: string,
+    @Query("lng") lng?: string,
     @Res() res: Response,
   ) {
-    const result = await this.onboardService.getBusinessDetails(businessId);
+    const userLocation =
+      lat && lng
+        ? {
+            lat: parseFloat(lat),
+            lng: parseFloat(lng),
+          }
+        : undefined;
+
+    const result = await this.onboardService.getBusinessDetails(
+      businessId,
+      userLocation,
+    );
     res.json({ success: true, data: result });
     res.end();
   }

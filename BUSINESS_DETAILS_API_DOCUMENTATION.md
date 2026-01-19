@@ -29,6 +29,10 @@ The Business Details API allows users to fetch complete information about a spec
 **URL Parameters:**
 - `businessId` (string, required) - The MongoDB ObjectId of the business
 
+**Query Parameters (Optional):**
+- `lat` (number, optional) - User's latitude (for distance calculation)
+- `lng` (number, optional) - User's longitude (for distance calculation)
+
 **Success Response (200):**
 ```json
 {
@@ -51,8 +55,62 @@ The Business Details API allows users to fetch complete information about a spec
         "address": "122 Gandhi Nagar",
         "landmark": "Near XYZ",
         "city": "Hosur"
-      }
+      },
+      "distanceInKm": 1.2
     },
+    "timings": [
+      {
+        "day": "Monday",
+        "open": "08:00",
+        "close": "23:00",
+        "breaks": [],
+        "isClosed": false
+      },
+      {
+        "day": "Tuesday",
+        "open": "08:00",
+        "close": "23:00",
+        "breaks": [],
+        "isClosed": false
+      },
+      {
+        "day": "Wednesday",
+        "open": "08:00",
+        "close": "23:00",
+        "breaks": [
+          {
+            "start": "13:00",
+            "end": "14:00"
+          }
+        ],
+        "isClosed": false
+      },
+      {
+        "day": "Thursday",
+        "open": "08:00",
+        "close": "23:00",
+        "breaks": [],
+        "isClosed": false
+      },
+      {
+        "day": "Friday",
+        "open": "08:00",
+        "close": "23:00",
+        "breaks": [],
+        "isClosed": false
+      },
+      {
+        "day": "Saturday",
+        "open": "09:00",
+        "close": "22:00",
+        "breaks": [],
+        "isClosed": false
+      },
+      {
+        "day": "Sunday",
+        "isClosed": true
+      }
+    ],
     "services": [
       {
         "serviceId": "69615eee7c6e18f8055b5a30",
@@ -102,6 +160,17 @@ The Business Details API allows users to fetch complete information about a spec
   - `address` (string) - Street address
   - `landmark` (string, optional) - Nearby landmark
   - `city` (string) - City name
+- `distanceInKm` (number, optional) - Distance from user location in kilometers (only included if lat/lng query params provided)
+
+**Timings Array:**
+Each timing object contains:
+- `day` (string) - Day name (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)
+- `open` (string, optional) - Opening time in "HH:MM" format (only if not closed)
+- `close` (string, optional) - Closing time in "HH:MM" format (only if not closed)
+- `breaks` (array, optional) - Array of break periods (only if not closed)
+  - `start` (string) - Break start time in "HH:MM" format
+  - `end` (string) - Break end time in "HH:MM" format
+- `isClosed` (boolean) - Whether the business is closed on this day
 
 **Services Array:**
 Each service object contains:
@@ -143,9 +212,18 @@ Each review object contains:
 ```
 
 **Sample cURL:**
+
+**Without Distance:**
 ```bash
 curl -X GET \
   'https://api.example.com/api/businesses/69615ddd7c6e18f8055b5a29/details' \
+  -H 'Content-Type: application/json'
+```
+
+**With Distance Calculation:**
+```bash
+curl -X GET \
+  'https://api.example.com/api/businesses/69615ddd7c6e18f8055b5a29/details?lat=12.4903&lng=78.5769' \
   -H 'Content-Type: application/json'
 ```
 
@@ -186,7 +264,43 @@ The backend queries the `services` collection:
 
 **Note:** Services are returned in the order they appear in the database. No specific sorting is applied.
 
-### STEP 3: Fetch Reviews
+### STEP 3: Calculate Distance (Optional)
+
+If `lat` and `lng` query parameters are provided:
+- Calculates distance using Haversine formula
+- Distance is calculated from user location to business location
+- Returns distance in kilometers, rounded to 1 decimal place
+- Only included in response if user location is provided
+
+### STEP 4: Fetch Working Hours
+
+The backend queries the `service_availability` collection:
+
+**Query Filters:**
+- `businessId` - Matches the requested business
+- `isActive = true` - Only active availability records
+
+**Data Structure:**
+- Returns one document per day (enforced by unique index on `{ businessId, dayOfWeek }`)
+- Each document contains: `dayOfWeek` (0-6), `startTime`, `endTime`, `breaks`
+
+**Timings Array Building:**
+- Always returns all 7 days (Sunday=0 to Saturday=6)
+- Maps day numbers to day names:
+  - 0 = Sunday
+  - 1 = Monday
+  - 2 = Tuesday
+  - 3 = Wednesday
+  - 4 = Thursday
+  - 5 = Friday
+  - 6 = Saturday
+
+**Rules:**
+- If availability document exists for a day → `isClosed = false`, includes `open`, `close`, `breaks`
+- If no availability document exists for a day → `isClosed = true`, no other fields
+- No merging or computation - direct mapping from database
+
+### STEP 5: Fetch Reviews
 
 The backend queries the `business_ratings` collection using an aggregation pipeline:
 
@@ -226,6 +340,18 @@ The backend queries the `business_ratings` collection using an aggregation pipel
 1. **Rating Display**: If no ratings exist, `average = 0` and `count = 0`
 2. **Images**: Returns empty array `[]` if no images are available
 3. **Address**: `landmark` field is optional and may be omitted if not provided
+4. **Distance**: Only included if `lat` and `lng` query parameters are provided. Calculated using Haversine formula, rounded to 1 decimal place.
+
+### Working Hours
+
+1. **Always 7 Days**: The `timings` array always contains all 7 days of the week, in order (Monday through Sunday)
+2. **Closed Days**: If no availability document exists for a day, `isClosed = true` and no `open`/`close`/`breaks` fields
+3. **Open Days**: If availability exists, includes:
+   - `open`: Opening time in "HH:MM" format
+   - `close`: Closing time in "HH:MM" format
+   - `breaks`: Array of break periods (can be empty array `[]`)
+4. **Break Format**: Each break has `start` and `end` times in "HH:MM" format
+5. **No Merging**: Each day is mapped directly from the database - no computation or merging of times
 
 ### Services
 
@@ -351,8 +477,62 @@ GET /api/businesses/69615ddd7c6e18f8055b5a29/details
         "address": "122 Gandhi Nagar",
         "landmark": "Near XYZ Mall",
         "city": "Hosur"
-      }
+      },
+      "distanceInKm": 1.2
     },
+    "timings": [
+      {
+        "day": "Monday",
+        "open": "08:00",
+        "close": "23:00",
+        "breaks": [],
+        "isClosed": false
+      },
+      {
+        "day": "Tuesday",
+        "open": "08:00",
+        "close": "23:00",
+        "breaks": [],
+        "isClosed": false
+      },
+      {
+        "day": "Wednesday",
+        "open": "08:00",
+        "close": "23:00",
+        "breaks": [
+          {
+            "start": "13:00",
+            "end": "14:00"
+          }
+        ],
+        "isClosed": false
+      },
+      {
+        "day": "Thursday",
+        "open": "08:00",
+        "close": "23:00",
+        "breaks": [],
+        "isClosed": false
+      },
+      {
+        "day": "Friday",
+        "open": "08:00",
+        "close": "23:00",
+        "breaks": [],
+        "isClosed": false
+      },
+      {
+        "day": "Saturday",
+        "open": "09:00",
+        "close": "22:00",
+        "breaks": [],
+        "isClosed": false
+      },
+      {
+        "day": "Sunday",
+        "isClosed": true
+      }
+    ],
     "services": [
       {
         "serviceId": "69615eee7c6e18f8055b5a30",
