@@ -631,25 +631,81 @@ export class OnboardService {
 
       // Generate serviceId and add service with image
       const serviceId = await this.generateUniqueServiceId(userId);
-      const newService: {
-        serviceId: string;
-        serviceName: string;
-        serviceDuration: number;
-        serviceCost: number;
-        gender: "male" | "female" | "both";
-        description?: string;
-        category?: string;
-        bufferTime?: number;
-        assignedStaff?: string[];
-        maximumNo?: number;
-        serviceImage?: string;
-        isActive?: boolean;
-      } = {
-        ...service,
+
+      // Build service object with category-based fields
+      const newService: Record<string, unknown> = {
         serviceId,
-        serviceImage: uploadedImageUrl,
-        isActive: service.isActive !== undefined ? service.isActive : true, // Default to true
+        category: service.category,
+        serviceName: service.serviceName,
+        serviceImage: uploadedImageUrl || service.serviceImage,
+        bufferTimeInMinutes: service.bufferTimeInMinutes,
+        priceUnitLabel: service.priceUnitLabel,
+        isActive: service.isActive !== undefined ? service.isActive : true,
+        isDiscoverable:
+          service.isDiscoverable !== undefined ? service.isDiscoverable : true,
       };
+
+      // Add category-specific fields
+      if (service.category === "turf") {
+        if (service.sportType) newService.sportType = service.sportType;
+        if (service.slotDurationInMinutes)
+          newService.slotDurationInMinutes = service.slotDurationInMinutes;
+        if (service.pricePerSlot)
+          newService.pricePerSlot = service.pricePerSlot;
+        if (service.maxPlayers) newService.maxPlayers = service.maxPlayers;
+        if (service.allowedGenders)
+          newService.allowedGenders = service.allowedGenders;
+        if (service.amenities) newService.amenities = service.amenities;
+      } else if (service.category === "saloon") {
+        if (service.serviceDurationInMinutes)
+          newService.serviceDurationInMinutes =
+            service.serviceDurationInMinutes;
+        if (service.price) newService.price = service.price;
+        if (service.serviceFor) newService.serviceFor = service.serviceFor;
+        if (service.maxConcurrentBookings)
+          newService.maxConcurrentBookings = service.maxConcurrentBookings;
+        if (service.assignedStaff)
+          newService.assignedStaff = service.assignedStaff;
+        if (service.categoryLabel)
+          newService.categoryLabel = service.categoryLabel;
+      } else if (service.category === "swimming-pool") {
+        if (service.slotDurationInMinutes)
+          newService.slotDurationInMinutes = service.slotDurationInMinutes;
+        if (service.pricePerPerson)
+          newService.pricePerPerson = service.pricePerPerson;
+        if (service.maxCapacity) newService.maxCapacity = service.maxCapacity;
+        if (service.ageGroup) newService.ageGroup = service.ageGroup;
+        if (service.allowedGenders)
+          newService.allowedGenders = service.allowedGenders;
+        if (service.dressCode) newService.dressCode = service.dressCode;
+        if (service.amenities) newService.amenities = service.amenities;
+      } else if (service.category === "spa") {
+        if (service.serviceDurationInMinutes)
+          newService.serviceDurationInMinutes =
+            service.serviceDurationInMinutes;
+        if (service.price) newService.price = service.price;
+        if (service.therapistGender)
+          newService.therapistGender = service.therapistGender;
+        if (service.maxConcurrentSessions)
+          newService.maxConcurrentSessions = service.maxConcurrentSessions;
+        if (service.roomType) newService.roomType = service.roomType;
+        if (service.treatmentCategory)
+          newService.treatmentCategory = service.treatmentCategory;
+      } else if (service.category === "beauty-parlour") {
+        if (service.serviceDurationInMinutes)
+          newService.serviceDurationInMinutes =
+            service.serviceDurationInMinutes;
+        if (service.price) newService.price = service.price;
+        if (service.serviceFor) newService.serviceFor = service.serviceFor;
+        if (service.maxConcurrentSessions)
+          newService.maxConcurrentSessions = service.maxConcurrentSessions;
+        if (service.beauticianLevel)
+          newService.beauticianLevel = service.beauticianLevel;
+        if (service.treatmentCategory)
+          newService.treatmentCategory = service.treatmentCategory;
+        if (service.productsUsed)
+          newService.productsUsed = service.productsUsed;
+      }
 
       existingServices.push(newService);
       vendor.services = existingServices;
@@ -826,54 +882,246 @@ export class OnboardService {
         }
       }
 
-      // Update the service - explicitly preserve serviceId
-      const updatedService = {
+      // Update the service - preserve serviceId and handle category-based fields
+      const existingServicePlain = existingService as Record<string, unknown>;
+      const updatedService: Record<string, unknown> = {
         serviceId: existingService.serviceId, // Explicitly preserve serviceId
+        category:
+          updateVendorServiceDto.category !== undefined
+            ? updateVendorServiceDto.category
+            : existingServicePlain.category || existingService.category,
         serviceName:
           updateVendorServiceDto.serviceName !== undefined
             ? updateVendorServiceDto.serviceName
             : existingService.serviceName,
-        serviceDuration:
-          updateVendorServiceDto.serviceDuration !== undefined
-            ? updateVendorServiceDto.serviceDuration
-            : existingService.serviceDuration,
-        serviceCost:
-          updateVendorServiceDto.serviceCost !== undefined
-            ? updateVendorServiceDto.serviceCost
-            : existingService.serviceCost,
-        gender:
-          updateVendorServiceDto.gender !== undefined
-            ? updateVendorServiceDto.gender
-            : existingService.gender,
-        description:
-          updateVendorServiceDto.description !== undefined
-            ? updateVendorServiceDto.description
-            : existingService.description,
-        category:
-          updateVendorServiceDto.category !== undefined
-            ? updateVendorServiceDto.category
-            : existingService.category,
-        bufferTime:
-          updateVendorServiceDto.bufferTime !== undefined
-            ? updateVendorServiceDto.bufferTime
-            : existingService.bufferTime,
-        assignedStaff:
-          updateVendorServiceDto.assignedStaff !== undefined
-            ? updateVendorServiceDto.assignedStaff
-            : existingService.assignedStaff,
-        maximumNo:
-          updateVendorServiceDto.maximumNo !== undefined
-            ? updateVendorServiceDto.maximumNo
-            : existingService.maximumNo,
-        isActive:
-          updateVendorServiceDto.isActive !== undefined
-            ? updateVendorServiceDto.isActive
-            : (existingService.isActive ?? true),
         serviceImage:
           newImageUrl !== undefined
             ? newImageUrl
             : existingService.serviceImage,
+        bufferTimeInMinutes:
+          updateVendorServiceDto.bufferTimeInMinutes !== undefined
+            ? updateVendorServiceDto.bufferTimeInMinutes
+            : existingServicePlain.bufferTimeInMinutes ||
+              existingService.bufferTime ||
+              0,
+        priceUnitLabel:
+          updateVendorServiceDto.priceUnitLabel !== undefined
+            ? updateVendorServiceDto.priceUnitLabel
+            : existingServicePlain.priceUnitLabel || "",
+        isActive:
+          updateVendorServiceDto.isActive !== undefined
+            ? updateVendorServiceDto.isActive
+            : (existingService.isActive ?? true),
+        isDiscoverable:
+          updateVendorServiceDto.isDiscoverable !== undefined
+            ? updateVendorServiceDto.isDiscoverable
+            : (existingServicePlain.isDiscoverable ?? true),
       };
+
+      // Get the category (either from update or existing)
+      const category = (updateVendorServiceDto.category ||
+        existingServicePlain.category ||
+        existingService.category) as string;
+
+      // Add/update category-specific fields
+      if (category === "turf") {
+        if (updateVendorServiceDto.sportType !== undefined)
+          updatedService.sportType = updateVendorServiceDto.sportType;
+        else if (existingServicePlain.sportType !== undefined)
+          updatedService.sportType = existingServicePlain.sportType;
+
+        if (updateVendorServiceDto.slotDurationInMinutes !== undefined)
+          updatedService.slotDurationInMinutes =
+            updateVendorServiceDto.slotDurationInMinutes;
+        else if (existingServicePlain.slotDurationInMinutes !== undefined)
+          updatedService.slotDurationInMinutes =
+            existingServicePlain.slotDurationInMinutes;
+
+        if (updateVendorServiceDto.pricePerSlot !== undefined)
+          updatedService.pricePerSlot = updateVendorServiceDto.pricePerSlot;
+        else if (existingServicePlain.pricePerSlot !== undefined)
+          updatedService.pricePerSlot = existingServicePlain.pricePerSlot;
+
+        if (updateVendorServiceDto.maxPlayers !== undefined)
+          updatedService.maxPlayers = updateVendorServiceDto.maxPlayers;
+        else if (existingServicePlain.maxPlayers !== undefined)
+          updatedService.maxPlayers = existingServicePlain.maxPlayers;
+
+        if (updateVendorServiceDto.allowedGenders !== undefined)
+          updatedService.allowedGenders = updateVendorServiceDto.allowedGenders;
+        else if (existingServicePlain.allowedGenders !== undefined)
+          updatedService.allowedGenders = existingServicePlain.allowedGenders;
+
+        if (updateVendorServiceDto.amenities !== undefined)
+          updatedService.amenities = updateVendorServiceDto.amenities;
+        else if (existingServicePlain.amenities !== undefined)
+          updatedService.amenities = existingServicePlain.amenities;
+      } else if (category === "saloon") {
+        if (updateVendorServiceDto.serviceDurationInMinutes !== undefined)
+          updatedService.serviceDurationInMinutes =
+            updateVendorServiceDto.serviceDurationInMinutes;
+        else if (existingServicePlain.serviceDurationInMinutes !== undefined)
+          updatedService.serviceDurationInMinutes =
+            existingServicePlain.serviceDurationInMinutes;
+        else if (existingService.serviceDuration !== undefined)
+          updatedService.serviceDurationInMinutes =
+            existingService.serviceDuration;
+
+        if (updateVendorServiceDto.price !== undefined)
+          updatedService.price = updateVendorServiceDto.price;
+        else if (existingServicePlain.price !== undefined)
+          updatedService.price = existingServicePlain.price;
+        else if (existingService.serviceCost !== undefined)
+          updatedService.price = existingService.serviceCost;
+
+        if (updateVendorServiceDto.serviceFor !== undefined)
+          updatedService.serviceFor = updateVendorServiceDto.serviceFor;
+        else if (existingServicePlain.serviceFor !== undefined)
+          updatedService.serviceFor = existingServicePlain.serviceFor;
+
+        if (updateVendorServiceDto.maxConcurrentBookings !== undefined)
+          updatedService.maxConcurrentBookings =
+            updateVendorServiceDto.maxConcurrentBookings;
+        else if (existingServicePlain.maxConcurrentBookings !== undefined)
+          updatedService.maxConcurrentBookings =
+            existingServicePlain.maxConcurrentBookings;
+
+        if (updateVendorServiceDto.assignedStaff !== undefined)
+          updatedService.assignedStaff = updateVendorServiceDto.assignedStaff;
+        else if (existingService.assignedStaff !== undefined)
+          updatedService.assignedStaff = existingService.assignedStaff;
+
+        if (updateVendorServiceDto.categoryLabel !== undefined)
+          updatedService.categoryLabel = updateVendorServiceDto.categoryLabel;
+        else if (existingServicePlain.categoryLabel !== undefined)
+          updatedService.categoryLabel = existingServicePlain.categoryLabel;
+      } else if (category === "swimming-pool") {
+        if (updateVendorServiceDto.slotDurationInMinutes !== undefined)
+          updatedService.slotDurationInMinutes =
+            updateVendorServiceDto.slotDurationInMinutes;
+        else if (existingServicePlain.slotDurationInMinutes !== undefined)
+          updatedService.slotDurationInMinutes =
+            existingServicePlain.slotDurationInMinutes;
+
+        if (updateVendorServiceDto.pricePerPerson !== undefined)
+          updatedService.pricePerPerson = updateVendorServiceDto.pricePerPerson;
+        else if (existingServicePlain.pricePerPerson !== undefined)
+          updatedService.pricePerPerson = existingServicePlain.pricePerPerson;
+
+        if (updateVendorServiceDto.maxCapacity !== undefined)
+          updatedService.maxCapacity = updateVendorServiceDto.maxCapacity;
+        else if (existingServicePlain.maxCapacity !== undefined)
+          updatedService.maxCapacity = existingServicePlain.maxCapacity;
+
+        if (updateVendorServiceDto.ageGroup !== undefined)
+          updatedService.ageGroup = updateVendorServiceDto.ageGroup;
+        else if (existingServicePlain.ageGroup !== undefined)
+          updatedService.ageGroup = existingServicePlain.ageGroup;
+
+        if (updateVendorServiceDto.allowedGenders !== undefined)
+          updatedService.allowedGenders = updateVendorServiceDto.allowedGenders;
+        else if (existingServicePlain.allowedGenders !== undefined)
+          updatedService.allowedGenders = existingServicePlain.allowedGenders;
+
+        if (updateVendorServiceDto.dressCode !== undefined)
+          updatedService.dressCode = updateVendorServiceDto.dressCode;
+        else if (existingServicePlain.dressCode !== undefined)
+          updatedService.dressCode = existingServicePlain.dressCode;
+
+        if (updateVendorServiceDto.amenities !== undefined)
+          updatedService.amenities = updateVendorServiceDto.amenities;
+        else if (existingServicePlain.amenities !== undefined)
+          updatedService.amenities = existingServicePlain.amenities;
+      } else if (category === "spa") {
+        if (updateVendorServiceDto.serviceDurationInMinutes !== undefined)
+          updatedService.serviceDurationInMinutes =
+            updateVendorServiceDto.serviceDurationInMinutes;
+        else if (existingServicePlain.serviceDurationInMinutes !== undefined)
+          updatedService.serviceDurationInMinutes =
+            existingServicePlain.serviceDurationInMinutes;
+        else if (existingService.serviceDuration !== undefined)
+          updatedService.serviceDurationInMinutes =
+            existingService.serviceDuration;
+
+        if (updateVendorServiceDto.price !== undefined)
+          updatedService.price = updateVendorServiceDto.price;
+        else if (existingServicePlain.price !== undefined)
+          updatedService.price = existingServicePlain.price;
+        else if (existingService.serviceCost !== undefined)
+          updatedService.price = existingService.serviceCost;
+
+        if (updateVendorServiceDto.therapistGender !== undefined)
+          updatedService.therapistGender =
+            updateVendorServiceDto.therapistGender;
+        else if (existingServicePlain.therapistGender !== undefined)
+          updatedService.therapistGender = existingServicePlain.therapistGender;
+
+        if (updateVendorServiceDto.maxConcurrentSessions !== undefined)
+          updatedService.maxConcurrentSessions =
+            updateVendorServiceDto.maxConcurrentSessions;
+        else if (existingServicePlain.maxConcurrentSessions !== undefined)
+          updatedService.maxConcurrentSessions =
+            existingServicePlain.maxConcurrentSessions;
+
+        if (updateVendorServiceDto.roomType !== undefined)
+          updatedService.roomType = updateVendorServiceDto.roomType;
+        else if (existingServicePlain.roomType !== undefined)
+          updatedService.roomType = existingServicePlain.roomType;
+
+        if (updateVendorServiceDto.treatmentCategory !== undefined)
+          updatedService.treatmentCategory =
+            updateVendorServiceDto.treatmentCategory;
+        else if (existingServicePlain.treatmentCategory !== undefined)
+          updatedService.treatmentCategory =
+            existingServicePlain.treatmentCategory;
+      } else if (category === "beauty-parlour") {
+        if (updateVendorServiceDto.serviceDurationInMinutes !== undefined)
+          updatedService.serviceDurationInMinutes =
+            updateVendorServiceDto.serviceDurationInMinutes;
+        else if (existingServicePlain.serviceDurationInMinutes !== undefined)
+          updatedService.serviceDurationInMinutes =
+            existingServicePlain.serviceDurationInMinutes;
+        else if (existingService.serviceDuration !== undefined)
+          updatedService.serviceDurationInMinutes =
+            existingService.serviceDuration;
+
+        if (updateVendorServiceDto.price !== undefined)
+          updatedService.price = updateVendorServiceDto.price;
+        else if (existingServicePlain.price !== undefined)
+          updatedService.price = existingServicePlain.price;
+        else if (existingService.serviceCost !== undefined)
+          updatedService.price = existingService.serviceCost;
+
+        if (updateVendorServiceDto.serviceFor !== undefined)
+          updatedService.serviceFor = updateVendorServiceDto.serviceFor;
+        else if (existingServicePlain.serviceFor !== undefined)
+          updatedService.serviceFor = existingServicePlain.serviceFor;
+
+        if (updateVendorServiceDto.maxConcurrentSessions !== undefined)
+          updatedService.maxConcurrentSessions =
+            updateVendorServiceDto.maxConcurrentSessions;
+        else if (existingServicePlain.maxConcurrentSessions !== undefined)
+          updatedService.maxConcurrentSessions =
+            existingServicePlain.maxConcurrentSessions;
+
+        if (updateVendorServiceDto.beauticianLevel !== undefined)
+          updatedService.beauticianLevel =
+            updateVendorServiceDto.beauticianLevel;
+        else if (existingServicePlain.beauticianLevel !== undefined)
+          updatedService.beauticianLevel = existingServicePlain.beauticianLevel;
+
+        if (updateVendorServiceDto.treatmentCategory !== undefined)
+          updatedService.treatmentCategory =
+            updateVendorServiceDto.treatmentCategory;
+        else if (existingServicePlain.treatmentCategory !== undefined)
+          updatedService.treatmentCategory =
+            existingServicePlain.treatmentCategory;
+
+        if (updateVendorServiceDto.productsUsed !== undefined)
+          updatedService.productsUsed = updateVendorServiceDto.productsUsed;
+        else if (existingServicePlain.productsUsed !== undefined)
+          updatedService.productsUsed = existingServicePlain.productsUsed;
+      }
 
       existingServices[serviceIndex] = updatedService;
       vendor.services = existingServices;
@@ -2058,21 +2306,85 @@ export class OnboardService {
     // Use the _id from the businesses collection (already ObjectId)
     const businessIdObjectId = businessDoc._id as Types.ObjectId;
 
-    const serviceApproval = new this.serviceApprovalModel({
+    // Build service approval document with category-based fields
+    const serviceApprovalData: Record<string, unknown> = {
       vendorId,
       businessId: businessIdObjectId,
       serviceName: saveDto.serviceName,
-      description: saveDto.description,
-      durationInMinutes: saveDto.durationInMinutes,
-      bufferTimeInMinutes: saveDto.bufferTimeInMinutes || 0,
-      price: saveDto.price,
-      category: saveDto.category,
-      gender: saveDto.gender,
-      maxBookingsPerSlot: saveDto.maxBookingsPerSlot || 1,
       serviceImage: saveDto.serviceImage,
-      assignedStaff: saveDto.assignedStaff ?? [],
+      category: saveDto.category,
+      bufferTimeInMinutes: saveDto.bufferTimeInMinutes || 0,
+      priceUnitLabel: saveDto.priceUnitLabel,
+      isActive: saveDto.isActive !== undefined ? saveDto.isActive : true,
+      isDiscoverable:
+        saveDto.isDiscoverable !== undefined ? saveDto.isDiscoverable : true,
       status: "pending",
-    });
+    };
+
+    // Add category-specific fields
+    if (saveDto.category === "turf") {
+      serviceApprovalData.sportType = saveDto.sportType;
+      serviceApprovalData.slotDurationInMinutes = saveDto.slotDurationInMinutes;
+      serviceApprovalData.pricePerSlot = saveDto.pricePerSlot;
+      serviceApprovalData.maxPlayers = saveDto.maxPlayers;
+      serviceApprovalData.allowedGenders = saveDto.allowedGenders;
+      if (saveDto.amenities) {
+        serviceApprovalData.amenities = saveDto.amenities;
+      }
+    } else if (saveDto.category === "saloon") {
+      serviceApprovalData.serviceDurationInMinutes =
+        saveDto.serviceDurationInMinutes;
+      serviceApprovalData.price = saveDto.price;
+      serviceApprovalData.serviceFor = saveDto.serviceFor;
+      serviceApprovalData.maxConcurrentBookings = saveDto.maxConcurrentBookings;
+      if (saveDto.assignedStaff) {
+        serviceApprovalData.assignedStaff = saveDto.assignedStaff;
+      }
+      if (saveDto.categoryLabel) {
+        serviceApprovalData.categoryLabel = saveDto.categoryLabel;
+      }
+    } else if (saveDto.category === "swimming-pool") {
+      serviceApprovalData.slotDurationInMinutes = saveDto.slotDurationInMinutes;
+      serviceApprovalData.pricePerPerson = saveDto.pricePerPerson;
+      serviceApprovalData.maxCapacity = saveDto.maxCapacity;
+      serviceApprovalData.ageGroup = saveDto.ageGroup;
+      serviceApprovalData.allowedGenders = saveDto.allowedGenders;
+      if (saveDto.dressCode) {
+        serviceApprovalData.dressCode = saveDto.dressCode;
+      }
+      if (saveDto.amenities) {
+        serviceApprovalData.amenities = saveDto.amenities;
+      }
+    } else if (saveDto.category === "spa") {
+      serviceApprovalData.serviceDurationInMinutes =
+        saveDto.serviceDurationInMinutes;
+      serviceApprovalData.price = saveDto.price;
+      serviceApprovalData.therapistGender = saveDto.therapistGender;
+      serviceApprovalData.maxConcurrentSessions = saveDto.maxConcurrentSessions;
+      if (saveDto.roomType) {
+        serviceApprovalData.roomType = saveDto.roomType;
+      }
+      if (saveDto.treatmentCategory) {
+        serviceApprovalData.treatmentCategory = saveDto.treatmentCategory;
+      }
+    } else if (saveDto.category === "beauty-parlour") {
+      serviceApprovalData.serviceDurationInMinutes =
+        saveDto.serviceDurationInMinutes;
+      serviceApprovalData.price = saveDto.price;
+      serviceApprovalData.serviceFor = saveDto.serviceFor;
+      serviceApprovalData.maxConcurrentSessions = saveDto.maxConcurrentSessions;
+      if (saveDto.beauticianLevel) {
+        serviceApprovalData.beauticianLevel = saveDto.beauticianLevel;
+      }
+      if (saveDto.treatmentCategory) {
+        serviceApprovalData.treatmentCategory = saveDto.treatmentCategory;
+      }
+      if (saveDto.productsUsed) {
+        serviceApprovalData.productsUsed = saveDto.productsUsed;
+      }
+    }
+
+    const serviceApproval = new this.serviceApprovalModel(serviceApprovalData);
 
     const saved = await serviceApproval.save();
 
@@ -2155,27 +2467,148 @@ export class OnboardService {
         breaks?: Array<{ break_start: string; break_end: string }>;
       };
 
-      // Step 3: Create service document
-      const service = new this.serviceModel({
+      // Step 3: Create service document with category-based fields
+      const approvalPlain = approval as unknown as {
+        [key: string]: unknown;
+        category: string;
+        serviceName: string;
+        serviceImage: string;
+        bufferTimeInMinutes: number;
+        priceUnitLabel: string;
+      };
+
+      const serviceData: Record<string, unknown> = {
         vendorId: approval.vendorId,
         businessId: approval.businessId,
         serviceName: approval.serviceName,
-        description: approval.description,
-        durationInMinutes: approval.durationInMinutes,
-        bufferTimeInMinutes: approval.bufferTimeInMinutes,
-        price: approval.price,
-        category: approval.category,
-        gender: approval.gender,
-        maxBookingsPerSlot: approval.maxBookingsPerSlot,
         serviceImage: approval.serviceImage,
-        assignedStaff: approval.assignedStaff ?? [],
+        category: approval.category,
+        bufferTimeInMinutes: approval.bufferTimeInMinutes,
+        priceUnitLabel: approval.priceUnitLabel,
+        isActive: approval.isActive !== undefined ? approval.isActive : true,
+        isDiscoverable:
+          approval.isDiscoverable !== undefined
+            ? approval.isDiscoverable
+            : true,
         location: {
           type: "Point",
           coordinates: businessPlain.location?.coordinates || [0, 0],
         },
-        isActive: true,
-        isDiscoverable: true,
-      });
+      };
+
+      // Add category-specific fields
+      if (approval.category === "turf") {
+        if (approvalPlain.sportType) {
+          serviceData.sportType = approvalPlain.sportType;
+        }
+        if (approvalPlain.slotDurationInMinutes) {
+          serviceData.slotDurationInMinutes =
+            approvalPlain.slotDurationInMinutes;
+        }
+        if (approvalPlain.pricePerSlot) {
+          serviceData.pricePerSlot = approvalPlain.pricePerSlot;
+        }
+        if (approvalPlain.maxPlayers) {
+          serviceData.maxPlayers = approvalPlain.maxPlayers;
+        }
+        if (approvalPlain.allowedGenders) {
+          serviceData.allowedGenders = approvalPlain.allowedGenders;
+        }
+        if (approvalPlain.amenities) {
+          serviceData.amenities = approvalPlain.amenities;
+        }
+      } else if (approval.category === "saloon") {
+        if (approvalPlain.serviceDurationInMinutes) {
+          serviceData.serviceDurationInMinutes =
+            approvalPlain.serviceDurationInMinutes;
+        }
+        if (approvalPlain.price) {
+          serviceData.price = approvalPlain.price;
+        }
+        if (approvalPlain.serviceFor) {
+          serviceData.serviceFor = approvalPlain.serviceFor;
+        }
+        if (approvalPlain.maxConcurrentBookings) {
+          serviceData.maxConcurrentBookings =
+            approvalPlain.maxConcurrentBookings;
+        }
+        if (approvalPlain.assignedStaff) {
+          serviceData.assignedStaff = approvalPlain.assignedStaff;
+        }
+        if (approvalPlain.categoryLabel) {
+          serviceData.categoryLabel = approvalPlain.categoryLabel;
+        }
+      } else if (approval.category === "swimming-pool") {
+        if (approvalPlain.slotDurationInMinutes) {
+          serviceData.slotDurationInMinutes =
+            approvalPlain.slotDurationInMinutes;
+        }
+        if (approvalPlain.pricePerPerson) {
+          serviceData.pricePerPerson = approvalPlain.pricePerPerson;
+        }
+        if (approvalPlain.maxCapacity) {
+          serviceData.maxCapacity = approvalPlain.maxCapacity;
+        }
+        if (approvalPlain.ageGroup) {
+          serviceData.ageGroup = approvalPlain.ageGroup;
+        }
+        if (approvalPlain.allowedGenders) {
+          serviceData.allowedGenders = approvalPlain.allowedGenders;
+        }
+        if (approvalPlain.dressCode) {
+          serviceData.dressCode = approvalPlain.dressCode;
+        }
+        if (approvalPlain.amenities) {
+          serviceData.amenities = approvalPlain.amenities;
+        }
+      } else if (approval.category === "spa") {
+        if (approvalPlain.serviceDurationInMinutes) {
+          serviceData.serviceDurationInMinutes =
+            approvalPlain.serviceDurationInMinutes;
+        }
+        if (approvalPlain.price) {
+          serviceData.price = approvalPlain.price;
+        }
+        if (approvalPlain.therapistGender) {
+          serviceData.therapistGender = approvalPlain.therapistGender;
+        }
+        if (approvalPlain.maxConcurrentSessions) {
+          serviceData.maxConcurrentSessions =
+            approvalPlain.maxConcurrentSessions;
+        }
+        if (approvalPlain.roomType) {
+          serviceData.roomType = approvalPlain.roomType;
+        }
+        if (approvalPlain.treatmentCategory) {
+          serviceData.treatmentCategory = approvalPlain.treatmentCategory;
+        }
+      } else if (approval.category === "beauty-parlour") {
+        if (approvalPlain.serviceDurationInMinutes) {
+          serviceData.serviceDurationInMinutes =
+            approvalPlain.serviceDurationInMinutes;
+        }
+        if (approvalPlain.price) {
+          serviceData.price = approvalPlain.price;
+        }
+        if (approvalPlain.serviceFor) {
+          serviceData.serviceFor = approvalPlain.serviceFor;
+        }
+        if (approvalPlain.maxConcurrentSessions) {
+          serviceData.maxConcurrentSessions =
+            approvalPlain.maxConcurrentSessions;
+        }
+        if (approvalPlain.beauticianLevel) {
+          serviceData.beauticianLevel = approvalPlain.beauticianLevel;
+        }
+        if (approvalPlain.treatmentCategory) {
+          serviceData.treatmentCategory = approvalPlain.treatmentCategory;
+        }
+        if (approvalPlain.productsUsed) {
+          serviceData.productsUsed = approvalPlain.productsUsed;
+        }
+      }
+
+      const service = new this.serviceModel(serviceData);
 
       const savedService = await service.save({ session });
 
