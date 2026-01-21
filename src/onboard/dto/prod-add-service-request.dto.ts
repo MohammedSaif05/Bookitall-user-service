@@ -45,8 +45,8 @@ export class ProdAddServiceRequestDto {
 
   @IsString()
   @IsUrl()
-  @IsNotEmpty()
-  serviceImage!: string;
+  @IsOptional()
+  serviceImage?: string;
 
   @IsBoolean()
   @IsOptional()

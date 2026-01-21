@@ -25,7 +25,7 @@ All services must have these fields:
 - `businessId` (ObjectId, required) - Reference to Business document
 - `category` (string, required) - One of: "turf", "saloon", "swimming-pool", "spa", "beauty-parlour"
 - `serviceName` (string, required) - Name of the service
-- `serviceImage` (string, required) - URL of the service image
+- `serviceImage` (string, optional) - URL of the service image
 - `isActive` (boolean, default: true) - Service active status
 - `isDiscoverable` (boolean, default: true) - Service discoverable status
 - `bufferTimeInMinutes` (number, required) - Buffer time between bookings

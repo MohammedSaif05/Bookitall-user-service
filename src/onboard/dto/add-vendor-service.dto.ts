@@ -41,8 +41,8 @@ export class VendorServiceItemDto {
   serviceName!: string;
 
   @IsString()
-  @IsNotEmpty()
-  serviceImage!: string;
+  @IsOptional()
+  serviceImage?: string;
 
   @IsBoolean()
   @IsOptional()
