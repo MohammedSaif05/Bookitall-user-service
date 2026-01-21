@@ -64,11 +64,8 @@ export class ProdAddServiceRequestDto {
   @IsNotEmpty()
   priceUnitLabel!: string;
 
-  // Shared fields (TURF + SWIMMING-POOL)
-  @ValidateIf(
-    (o: ProdAddServiceRequestDto) =>
-      o.category === "turf" || o.category === "swimming-pool",
-  )
+  // TURF specific field
+  @ValidateIf((o: ProdAddServiceRequestDto) => o.category === "turf")
   @IsString()
   @IsNotEmpty()
   sportType?: string;

@@ -61,10 +61,7 @@ export class VendorServiceItemDto {
   priceUnitLabel!: string;
 
   // Shared fields (TURF + SWIMMING-POOL)
-  @ValidateIf(
-    (o: VendorServiceItemDto) =>
-      o.category === "turf" || o.category === "swimming-pool",
-  )
+  @ValidateIf((o: VendorServiceItemDto) => o.category === "turf")
   @IsString()
   @IsNotEmpty()
   sportType?: string;
