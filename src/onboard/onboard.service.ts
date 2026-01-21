@@ -2174,20 +2174,7 @@ export class OnboardService {
       );
     }
 
-    const existingService = existingServices[serviceIndex] as {
-      serviceId: string;
-      serviceName: string;
-      serviceDuration: number;
-      serviceCost: number;
-      gender: "male" | "female" | "both";
-      description?: string;
-      category?: string;
-      bufferTime?: number;
-      assignedStaff?: string[];
-      maximumNo?: number;
-      serviceImage?: string;
-      isActive?: boolean;
-    };
+    const existingService = existingServices[serviceIndex];
 
     // Delete old image from R2
     if (existingService.serviceImage) {
@@ -2197,22 +2184,9 @@ export class OnboardService {
       }
     }
 
-    // Update service with new image URL
-    const updatedService = {
-      serviceId: existingService.serviceId,
-      serviceName: existingService.serviceName,
-      serviceDuration: existingService.serviceDuration,
-      serviceCost: existingService.serviceCost,
-      gender: existingService.gender,
-      description: existingService.description,
-      category: existingService.category,
-      bufferTime: existingService.bufferTime,
-      assignedStaff: existingService.assignedStaff,
-      maximumNo: existingService.maximumNo,
-      isActive:
-        existingService.isActive !== undefined
-          ? existingService.isActive
-          : true,
+    // Update service with new image URL - preserve all existing fields
+    const updatedService: VendorServiceItem = {
+      ...existingService,
       serviceImage: saveDto.imageUrl,
     };
 
