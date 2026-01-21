@@ -149,7 +149,63 @@ export class Vendor {
     type: [
       {
         serviceId: { type: String, required: true, unique: false },
+        category: String,
         serviceName: String,
+        serviceImage: String,
+        isActive: { type: Boolean, default: true },
+        isDiscoverable: { type: Boolean, default: true },
+        bufferTimeInMinutes: Number,
+        priceUnitLabel: String,
+
+        // Turf + swimming-pool shared fields
+        sportType: String,
+        slotDurationInMinutes: Number,
+        allowedGenders: {
+          type: String,
+          enum: ["male", "female", "mixed"],
+        },
+        amenities: [String],
+
+        // Turf specific
+        pricePerSlot: Number,
+        maxPlayers: Number,
+
+        // Swimming-pool specific
+        pricePerPerson: Number,
+        maxCapacity: Number,
+        ageGroup: {
+          type: String,
+          enum: ["adults", "children"],
+        },
+        dressCode: String,
+
+        // Saloon / Spa / Beauty-parlour shared
+        serviceDurationInMinutes: Number,
+        price: Number,
+
+        // Saloon + Beauty-parlour
+        serviceFor: {
+          type: String,
+          enum: ["male", "female", "mixed"],
+        },
+        maxConcurrentBookings: Number,
+        assignedStaff: [String],
+        categoryLabel: String,
+
+        // Spa specific
+        therapistGender: {
+          type: String,
+          enum: ["male", "female"],
+        },
+        maxConcurrentSessions: Number,
+        roomType: String,
+        treatmentCategory: String,
+
+        // Beauty-parlour specific
+        beauticianLevel: String,
+        productsUsed: [String],
+
+        // Legacy fields kept for backward compatibility
         serviceDuration: Number,
         serviceCost: Number,
         gender: {
@@ -157,28 +213,67 @@ export class Vendor {
           enum: ["male", "female", "both"],
         },
         description: String,
-        category: String,
         bufferTime: Number,
-        assignedStaff: [String],
         maximumNo: Number,
-        serviceImage: String,
-        isActive: { type: Boolean, default: true },
       },
     ],
+    default: [],
   })
   services?: Array<{
     serviceId: string;
-    serviceName: string;
-    serviceDuration: number;
-    serviceCost: number;
-    gender: "male" | "female" | "both";
-    description?: string;
     category?: string;
-    bufferTime?: number;
-    assignedStaff?: string[];
-    maximumNo?: number;
+    serviceName: string;
     serviceImage?: string;
     isActive?: boolean;
+
+    // Discoverability & pricing units
+    isDiscoverable?: boolean;
+    bufferTimeInMinutes?: number;
+    priceUnitLabel?: string;
+
+    // Turf + swimming-pool shared
+    sportType?: string;
+    slotDurationInMinutes?: number;
+    allowedGenders?: "male" | "female" | "mixed";
+    amenities?: string[];
+
+    // Turf specific
+    pricePerSlot?: number;
+    maxPlayers?: number;
+
+    // Swimming-pool specific
+    pricePerPerson?: number;
+    maxCapacity?: number;
+    ageGroup?: "adults" | "children";
+    dressCode?: string;
+
+    // Saloon / Spa / Beauty-parlour shared
+    serviceDurationInMinutes?: number;
+    price?: number;
+
+    // Saloon + Beauty-parlour
+    serviceFor?: "male" | "female" | "mixed";
+    maxConcurrentBookings?: number;
+    assignedStaff?: string[];
+    categoryLabel?: string;
+
+    // Spa specific
+    therapistGender?: "male" | "female";
+    maxConcurrentSessions?: number;
+    roomType?: string;
+    treatmentCategory?: string;
+
+    // Beauty-parlour specific
+    beauticianLevel?: string;
+    productsUsed?: string[];
+
+    // Legacy fields
+    serviceDuration?: number;
+    serviceCost?: number;
+    gender?: "male" | "female" | "both";
+    description?: string;
+    bufferTime?: number;
+    maximumNo?: number;
   }>;
 
   @Prop({

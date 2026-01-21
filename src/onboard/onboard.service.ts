@@ -56,6 +56,8 @@ import { ProdAddServiceRequestDto } from "./dto/prod-add-service-request.dto.js"
 import { ProdAddCategoryDto } from "./dto/prod-add-category.dto.js";
 import { ProdUpdateCategoryDto } from "./dto/prod-update-category.dto.js";
 
+type VendorServiceItem = NonNullable<Vendor["services"]>[number];
+
 @Injectable()
 export class OnboardService {
   constructor(
@@ -579,7 +581,9 @@ export class OnboardService {
 
     const service: VendorServiceItemDto = addVendorServiceDto.service;
 
-    const existingServices = vendor.services ?? [];
+    const existingServices: VendorServiceItem[] = vendor.services
+      ? [...vendor.services]
+      : [];
     const existingStaff = vendor.staff ?? [];
 
     // Create a lookup set of existing staff names (case-insensitive)
@@ -707,8 +711,8 @@ export class OnboardService {
           newService.productsUsed = service.productsUsed;
       }
 
-      existingServices.push(newService);
-      vendor.services = existingServices;
+      existingServices.push(newService as VendorServiceItem);
+      vendor.services = existingServices as Vendor["services"];
       const saved = await vendor.save();
 
       return this.sanitizeVendor(saved);
@@ -734,7 +738,9 @@ export class OnboardService {
       throw new NotFoundException(`Vendor with userId ${userId} not found`);
     }
 
-    const existingServices = vendor.services ?? [];
+    const existingServices: VendorServiceItem[] = vendor.services
+      ? [...vendor.services]
+      : [];
     const serviceId = deleteVendorServiceDto.serviceId;
 
     // Find the service by serviceId
@@ -793,7 +799,9 @@ export class OnboardService {
       throw new NotFoundException(`Vendor with userId ${userId} not found`);
     }
 
-    const existingServices = vendor.services ?? [];
+    const existingServices: VendorServiceItem[] = vendor.services
+      ? [...vendor.services]
+      : [];
     const serviceId = updateVendorServiceDto.serviceId;
 
     // Find the service by serviceId
@@ -1123,8 +1131,8 @@ export class OnboardService {
           updatedService.productsUsed = existingServicePlain.productsUsed;
       }
 
-      existingServices[serviceIndex] = updatedService;
-      vendor.services = existingServices;
+      existingServices[serviceIndex] = updatedService as VendorServiceItem;
+      vendor.services = existingServices as Vendor["services"];
       const saved = await vendor.save();
 
       return this.sanitizeVendor(saved);
@@ -2090,7 +2098,9 @@ export class OnboardService {
       throw new NotFoundException(`Vendor with userId ${userId} not found`);
     }
 
-    const existingServices = vendor.services ?? [];
+    const existingServices: VendorServiceItem[] = vendor.services
+      ? [...vendor.services]
+      : [];
     const serviceExists = existingServices.some(
       (svc) =>
         (svc as { serviceId?: string }).serviceId === uploadDto.serviceId,
@@ -2151,7 +2161,9 @@ export class OnboardService {
       throw new NotFoundException(`Vendor with userId ${userId} not found`);
     }
 
-    const existingServices = vendor.services ?? [];
+    const existingServices: VendorServiceItem[] = vendor.services
+      ? [...vendor.services]
+      : [];
     const serviceIndex = existingServices.findIndex(
       (svc) => (svc as { serviceId?: string }).serviceId === saveDto.serviceId,
     );
