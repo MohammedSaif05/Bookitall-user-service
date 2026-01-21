@@ -15,7 +15,7 @@ const CATEGORIES = [
   "saloon",
   "swimming-pool",
   "spa",
-  "beauty-parlour",
+  "beauty-parlor",
 ] as const;
 type Category = (typeof CATEGORIES)[number];
 
@@ -122,7 +122,7 @@ export class UpdateVendorServiceDto {
     (o: UpdateVendorServiceDto) =>
       o.category === "saloon" ||
       o.category === "spa" ||
-      o.category === "beauty-parlour" ||
+      o.category === "beauty-parlor" ||
       o.category === undefined,
   )
   @IsNumber()
@@ -134,7 +134,7 @@ export class UpdateVendorServiceDto {
     (o: UpdateVendorServiceDto) =>
       o.category === "saloon" ||
       o.category === "spa" ||
-      o.category === "beauty-parlour" ||
+      o.category === "beauty-parlor" ||
       o.category === undefined,
   )
   @IsNumber()
@@ -145,7 +145,7 @@ export class UpdateVendorServiceDto {
   @ValidateIf(
     (o: UpdateVendorServiceDto) =>
       o.category === "saloon" ||
-      o.category === "beauty-parlour" ||
+      o.category === "beauty-parlor" ||
       o.category === undefined,
   )
   @IsEnum(GENDERS)
@@ -225,7 +225,7 @@ export class UpdateVendorServiceDto {
   @ValidateIf(
     (o: UpdateVendorServiceDto) =>
       o.category === "spa" ||
-      o.category === "beauty-parlour" ||
+      o.category === "beauty-parlor" ||
       o.category === undefined,
   )
   @IsNumber()
@@ -244,7 +244,7 @@ export class UpdateVendorServiceDto {
   @ValidateIf(
     (o: UpdateVendorServiceDto) =>
       o.category === "spa" ||
-      o.category === "beauty-parlour" ||
+      o.category === "beauty-parlor" ||
       o.category === undefined,
   )
   @IsString()
@@ -254,7 +254,7 @@ export class UpdateVendorServiceDto {
   // BEAUTY_PARLOUR category fields
   @ValidateIf(
     (o: UpdateVendorServiceDto) =>
-      o.category === "beauty-parlour" || o.category === undefined,
+      o.category === "beauty-parlor" || o.category === undefined,
   )
   @IsString()
   @IsOptional()
@@ -262,7 +262,7 @@ export class UpdateVendorServiceDto {
 
   @ValidateIf(
     (o: UpdateVendorServiceDto) =>
-      o.category === "beauty-parlour" || o.category === undefined,
+      o.category === "beauty-parlor" || o.category === undefined,
   )
   @IsArray()
   @IsString({ each: true })

@@ -695,7 +695,7 @@ export class OnboardService {
         if (service.roomType) newService.roomType = service.roomType;
         if (service.treatmentCategory)
           newService.treatmentCategory = service.treatmentCategory;
-      } else if (service.category === "beauty-parlour") {
+      } else if (service.category === "beauty-parlor") {
         if (service.serviceDurationInMinutes)
           newService.serviceDurationInMinutes =
             service.serviceDurationInMinutes;
@@ -1082,7 +1082,7 @@ export class OnboardService {
         else if (existingServicePlain.treatmentCategory !== undefined)
           updatedService.treatmentCategory =
             existingServicePlain.treatmentCategory;
-      } else if (category === "beauty-parlour") {
+      } else if (category === "beauty-parlor") {
         if (updateVendorServiceDto.serviceDurationInMinutes !== undefined)
           updatedService.serviceDurationInMinutes =
             updateVendorServiceDto.serviceDurationInMinutes;
@@ -2353,7 +2353,7 @@ export class OnboardService {
       if (saveDto.treatmentCategory) {
         serviceApprovalData.treatmentCategory = saveDto.treatmentCategory;
       }
-    } else if (saveDto.category === "beauty-parlour") {
+    } else if (saveDto.category === "beauty-parlor") {
       serviceApprovalData.serviceDurationInMinutes =
         saveDto.serviceDurationInMinutes;
       serviceApprovalData.price = saveDto.price;
@@ -2568,7 +2568,7 @@ export class OnboardService {
         if (approvalPlain.treatmentCategory) {
           serviceData.treatmentCategory = approvalPlain.treatmentCategory;
         }
-      } else if (approval.category === "beauty-parlour") {
+      } else if (approval.category === "beauty-parlor") {
         if (approvalPlain.serviceDurationInMinutes) {
           serviceData.serviceDurationInMinutes =
             approvalPlain.serviceDurationInMinutes;

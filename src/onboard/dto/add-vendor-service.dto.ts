@@ -17,7 +17,7 @@ const CATEGORIES = [
   "saloon",
   "swimming-pool",
   "spa",
-  "beauty-parlour",
+  "beauty-parlor",
 ] as const;
 type Category = (typeof CATEGORIES)[number];
 
@@ -120,12 +120,12 @@ export class VendorServiceItemDto {
   @IsOptional()
   dressCode?: string;
 
-  // Fields shared by SALOON, SPA, BEAUTY-PARLOUR
+  // Fields shared by SALOON, SPA, beauty-parlor
   @ValidateIf(
     (o: VendorServiceItemDto) =>
       o.category === "saloon" ||
       o.category === "spa" ||
-      o.category === "beauty-parlour",
+      o.category === "beauty-parlor",
   )
   @IsNumber()
   @Min(1)
@@ -135,16 +135,16 @@ export class VendorServiceItemDto {
     (o: VendorServiceItemDto) =>
       o.category === "saloon" ||
       o.category === "spa" ||
-      o.category === "beauty-parlour",
+      o.category === "beauty-parlor",
   )
   @IsNumber()
   @Min(0)
   price?: number;
 
-  // Fields shared by SALOON + BEAUTY-PARLOUR
+  // Fields shared by SALOON + beauty-parlor
   @ValidateIf(
     (o: VendorServiceItemDto) =>
-      o.category === "saloon" || o.category === "beauty-parlour",
+      o.category === "saloon" || o.category === "beauty-parlor",
   )
   @IsEnum(GENDERS)
   serviceFor?: Gender;
@@ -175,10 +175,10 @@ export class VendorServiceItemDto {
   @IsOptional()
   roomType?: string;
 
-  // Fields shared by SPA + BEAUTY-PARLOUR
+  // Fields shared by SPA + beauty-parlor
   @ValidateIf(
     (o: VendorServiceItemDto) =>
-      o.category === "spa" || o.category === "beauty-parlour",
+      o.category === "spa" || o.category === "beauty-parlor",
   )
   @IsString()
   @IsOptional()
@@ -186,18 +186,18 @@ export class VendorServiceItemDto {
 
   @ValidateIf(
     (o: VendorServiceItemDto) =>
-      o.category === "spa" || o.category === "beauty-parlour",
+      o.category === "spa" || o.category === "beauty-parlor",
   )
   @IsNumber()
   @Min(1)
   maxConcurrentSessions?: number;
 
-  @ValidateIf((o: VendorServiceItemDto) => o.category === "beauty-parlour")
+  @ValidateIf((o: VendorServiceItemDto) => o.category === "beauty-parlor")
   @IsString()
   @IsOptional()
   beauticianLevel?: string;
 
-  @ValidateIf((o: VendorServiceItemDto) => o.category === "beauty-parlour")
+  @ValidateIf((o: VendorServiceItemDto) => o.category === "beauty-parlor")
   @IsArray()
   @IsString({ each: true })
   @IsOptional()

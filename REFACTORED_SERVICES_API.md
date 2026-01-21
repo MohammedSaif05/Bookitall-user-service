@@ -14,7 +14,7 @@ The services system has been completely refactored to support category-based fie
 2. **saloon** - Hair salon services
 3. **swimming-pool** - Swimming pool services
 4. **spa** - Spa and wellness services
-5. **beauty-parlour** - Beauty parlor services
+5. **beauty-parlor** - Beauty parlor services
 
 ---
 
@@ -23,7 +23,7 @@ The services system has been completely refactored to support category-based fie
 All services must have these fields:
 
 - `businessId` (ObjectId, required) - Reference to Business document
-- `category` (string, required) - One of: "turf", "saloon", "swimming-pool", "spa", "beauty-parlour"
+- `category` (string, required) - One of: "turf", "saloon", "swimming-pool", "spa", "beauty-parlor"
 - `serviceName` (string, required) - Name of the service
 - `serviceImage` (string, optional) - URL of the service image
 - `isActive` (boolean, default: true) - Service active status
@@ -215,7 +215,7 @@ All services must have these fields:
 ```json
 {
   "businessId": "69615ddd7c6e18f8055b5a29",
-  "category": "beauty-parlour",
+  "category": "beauty-parlor",
   "serviceName": "Gold Facial",
   "serviceImage": "https://...",
   "serviceDurationInMinutes": 60,
@@ -555,10 +555,10 @@ The DTOs use `@ValidateIf` decorators to ensure that:
 ### Breaking Changes
 
 1. **Field Names Changed:**
-- `durationInMinutes` → `serviceDurationInMinutes` (for saloon/spa/beauty-parlour) or `slotDurationInMinutes` (for turf/swimming-pool)
-- `price` → `pricePerSlot` (turf) or `pricePerPerson` (swimming-pool) or `price` (saloon/spa/beauty-parlour)
-- `gender` → `serviceFor` (saloon/beauty-parlour) or `allowedGenders` (turf/swimming-pool) or `therapistGender` (spa)
-- `maxBookingsPerSlot` → `maxPlayers` (turf) or `maxCapacity` (swimming-pool) or `maxConcurrentBookings` (saloon) or `maxConcurrentSessions` (spa/beauty-parlour)
+- `durationInMinutes` → `serviceDurationInMinutes` (for saloon/spa/beauty-parlor) or `slotDurationInMinutes` (for turf/swimming-pool)
+- `price` → `pricePerSlot` (turf) or `pricePerPerson` (swimming-pool) or `price` (saloon/spa/beauty-parlor)
+- `gender` → `serviceFor` (saloon/beauty-parlor) or `allowedGenders` (turf/swimming-pool) or `therapistGender` (spa)
+- `maxBookingsPerSlot` → `maxPlayers` (turf) or `maxCapacity` (swimming-pool) or `maxConcurrentBookings` (saloon) or `maxConcurrentSessions` (spa/beauty-parlor)
 
 2. **New Required Field:**
    - `priceUnitLabel` - Now required for all categories

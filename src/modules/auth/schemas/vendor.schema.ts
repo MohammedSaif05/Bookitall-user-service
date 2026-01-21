@@ -179,11 +179,11 @@ export class Vendor {
         },
         dressCode: String,
 
-        // Saloon / Spa / Beauty-parlour shared
+        // Saloon / Spa / beauty-parlor shared
         serviceDurationInMinutes: Number,
         price: Number,
 
-        // Saloon + Beauty-parlour
+        // Saloon + beauty-parlor
         serviceFor: {
           type: String,
           enum: ["male", "female", "mixed"],
@@ -201,7 +201,7 @@ export class Vendor {
         roomType: String,
         treatmentCategory: String,
 
-        // Beauty-parlour specific
+        // beauty-parlor specific
         beauticianLevel: String,
         productsUsed: [String],
 
@@ -247,11 +247,11 @@ export class Vendor {
     ageGroup?: "adults" | "children";
     dressCode?: string;
 
-    // Saloon / Spa / Beauty-parlour shared
+    // Saloon / Spa / beauty-parlor shared
     serviceDurationInMinutes?: number;
     price?: number;
 
-    // Saloon + Beauty-parlour
+    // Saloon + beauty-parlor
     serviceFor?: "male" | "female" | "mixed";
     maxConcurrentBookings?: number;
     assignedStaff?: string[];
@@ -263,7 +263,7 @@ export class Vendor {
     roomType?: string;
     treatmentCategory?: string;
 
-    // Beauty-parlour specific
+    // beauty-parlor specific
     beauticianLevel?: string;
     productsUsed?: string[];
 
