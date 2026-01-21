@@ -37,7 +37,8 @@ export class VendorsController {
 
   @Get(":userId/services")
   getVendorServices(@Param("userId") userId: string) {
-    return this.onboardService.getVendorServices(userId);
+    const data = this.onboardService.getVendorServices(userId);
+    return { success: true, data };
   }
 
   @Get(":userId")
