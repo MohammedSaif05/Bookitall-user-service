@@ -374,6 +374,50 @@ serviceImage: <File>
 
 ### Legacy Vendor Service APIs (Uses `vendors` Collection)
 
+#### 0. Upload Service Image (Step 1)
+
+**Endpoint:** `POST /api/vendor/:userId/upload-service-image`
+
+**Description:** Uploads a single service image to R2 (no DB write). Returns a presigned/public URL that can be saved in the next step.
+
+**Content-Type:** `multipart/form-data`
+
+**Request Body:**
+```form-data
+userId: "user123"         // must match :userId param
+serviceId: "service456"   // any new/temporary id for the service
+serviceImage: <File>      // required
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "imageUrl": "https://..."
+  }
+}
+```
+
+#### 1. Save Service Image Metadata (Step 2)
+
+**Endpoint:** `PATCH /api/vendor/:userId/save-service-image`
+
+**Description:** Saves the uploaded image URL to the vendor document for a specific service (no file upload).
+
+**Content-Type:** `application/json`
+
+**Request Body:**
+```json
+{
+  "userId": "user123",        // must match :userId param
+  "serviceId": "service456",  // the service to attach the image to
+  "imageUrl": "https://..."   // URL returned from step 1
+}
+```
+
+---
+
 #### 1. Add Service (JSON)
 
 **Endpoint:** `PATCH /api/vendor/:userId/add-service-json`
