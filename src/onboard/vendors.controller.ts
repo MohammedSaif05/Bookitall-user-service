@@ -36,8 +36,8 @@ export class VendorsController {
   }
 
   @Get(":userId/services")
-  getVendorServices(@Param("userId") userId: string) {
-    const data = this.onboardService.getVendorServices(userId);
+  async getVendorServices(@Param("userId") userId: string) {
+    const data = await this.onboardService.getVendorServices(userId);
     return { success: true, data };
   }
 
